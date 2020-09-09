@@ -3,18 +3,8 @@
 # quick script to automate incrementing
 # custom CONFIG_LOCALVERSION value in kernel
 # .config file
-KERNEL_VER=4.19.143
-KERNEL_DIR="$HOME/csce499/linux-$KERNEL_VER"
-KERNEL_CFG=.config
-LOCAL_VERSION_KEY="CONFIG_LOCALVERSION"
-LOCAL_VERSION_REGEX='^(-DinterR-Devel-)([0-9]+)$'
-# should be ${BASH_REMATCH[1]} of LOCAL_VERSION_REGEX
-# basically should match the regex above.
-LOCAL_VERSION_INIT_NUMBER=1
-LOCAL_VERSION_INIT_SUBSTRING="-DinterR-Devel-$LOCAL_VERSION_INIT_NUMBER"
 
-CURRENT_CONFIG_LOCALVERSION=`grep -w $LOCAL_VERSION_KEY "$KERNEL_DIR/$KERNEL_CFG"`
-CURRENT_CONFIG_LOCALVERSION_VALUE=`echo $CURRENT_CONFIG_LOCALVERSION | cut -d= -f2 | sed -e 's/\"//g'` 
+source `pwd`/dinterbuild.env 2>/dev/null || exit 1
 
 if [[ $CURRENT_CONFIG_LOCALVERSION_VALUE =~ $LOCAL_VERSION_REGEX ]]; then
   VERSION_NUMBER=${BASH_REMATCH[2]}
