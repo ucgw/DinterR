@@ -6,14 +6,14 @@
 source `pwd`/dinterbuild.env 2>/dev/null || exit 1
 
 case "$1" in
-  dry-run)
+  dry)
     DRYRUN=1
     ;;
   run)
     DRYRUN=0
     ;;
   *)
-    echo "Usage: $0 (run|dry-run)"
+    echo "Usage: $0 (run|dry)"
     exit 1;
     ;;
 esac
