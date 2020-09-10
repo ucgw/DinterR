@@ -1,0 +1,10 @@
+#!/bin/sh
+source `pwd`/dinterbuild.env 2>/dev/null || exit 1
+
+NOTIFY_FILES="dnotify.txt inotify.txt"
+BASE_DOCDIR="$KERNEL_DIR/Documentation/filesystems"
+
+for KERNDOC in $NOTIFY_FILES;do
+  echo "==$KERNDOC=="
+  cat $BASE_DOCDIR/$KERNDOC
+done
