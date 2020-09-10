@@ -1,7 +1,10 @@
 #!/bin/sh
-KERNEL_VER=4.19.143
-KERNEL_DIR="$HOME/csce499/linux-$KERNEL_VER"
+source `pwd`/dinterbuild.env 2>/dev/null || exit 1
 
-echo "====> Building Linux Kernel: $KERNEL_VER"
-cd $KERNEL_DIR
-make -j $(nproc)
+if [ -e $KERNEL_DIR ];then
+  echo "====> Building Linux Kernel: $KERNEL_VER"
+  cd $KERNEL_DIR
+  make -j $(nproc)
+else
+  exit 1
+fi
