@@ -8,5 +8,6 @@ kbuild:
 
 clean:
 	make -C $KERNEL_DIR M=`pwd` clean
+	rm -f Makefile
 EOF
 make kbuild
