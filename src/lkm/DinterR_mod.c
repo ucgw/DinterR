@@ -5,7 +5,7 @@
 
 MODULE_DESCRIPTION("DinterR: Data interaction Reporting LKM");
 MODULE_AUTHOR("Gabe West <gawest@noctrl.edu>");
-MODULE_LICENSE("Proprietary");
+MODULE_LICENSE("GPL v2");
 
 static const struct file_operations fops = {
     .owner = THIS_MODULE
