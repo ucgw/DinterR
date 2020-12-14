@@ -1,0 +1,33 @@
+--- /home/dinter/csce499/linux-4.19.143/fs/read_write.c.orig	2020-09-10 14:41:55.247838936 -0500
++++ /home/dinter/csce499/linux-4.19.143/fs/read_write.c	2020-12-14 00:46:57.265129745 -0600
+@@ -20,6 +20,11 @@
+ #include <linux/compat.h>
+ #include <linux/mount.h>
+ #include <linux/fs.h>
++#include <linux/module.h>
++#include <linux/dcache.h>
++#include <linux/gfp.h>
++#include <linux/kernel.h>
++#include <linux/string.h>
+ #include "internal.h"
+ 
+ #include <linux/uaccess.h>
+@@ -451,6 +456,18 @@
+ 			count =  MAX_RW_COUNT;
+ 		ret = __vfs_read(file, buf, count, pos);
+ 		if (ret > 0) {
++                        struct module* dinterr_mod = find_module("DinterR_mod");
++                        if (unlikely(try_module_get(dinterr_mod))) {
++                                char *pathbuff, *cpath, *dinterrfile;
++                                __kernel_size_t dinterr_flen;
++                                unsigned long dinterr_filename;
++
++                                pathbuff = (char *)__get_free_page(GFP_KERNEL);
++                                if (likely(pathbuff)) {
++                                    free_page((unsigned long)pathbuff);
++                                }
++                                module_put(dinterr_mod);
++                        }
+ 			fsnotify_access(file);
+ 			add_rchar(current, ret);
+ 		}
