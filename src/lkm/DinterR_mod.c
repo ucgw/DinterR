@@ -12,11 +12,15 @@ static char* dinterr_filename = NULL;
 module_param(dinterr_filename, charp, 0);
 MODULE_PARM_DESC(dinterr_filename, "Path to file for reporting");
 
-EXPORT_SYMBOL(dinterr_filename);
-
 static const struct file_operations fops = {
     .owner = THIS_MODULE
 };
+
+const char* get_dinterr_filename(void)
+{
+    return(dinterr_filename);
+}
+EXPORT_SYMBOL(get_dinterr_filename);
 
 static int __init dinterr_init(void)
 {

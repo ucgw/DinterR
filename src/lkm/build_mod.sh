@@ -10,4 +10,4 @@ clean:
 	make -C $KERNEL_DIR M=`pwd` clean
 	rm -f Makefile
 EOF
-make kbuild && modinfo DinterR_mod.ko
+make kbuild && modinfo DinterR_mod.ko && nm DinterR_mod.ko
