@@ -33,5 +33,5 @@ patches_to_apply+=( $latest_patch )
 
 for PATCH_APPLY in "${patches_to_apply[@]}";do
     >&2 echo "Applying == $PATCH_APPLY =="
-    patch -d/ -b -p0 < "$PATCH_DIR/$PATCH_APPLY"
+    patch -d/ -b -V numbered -p0 < "$PATCH_DIR/$PATCH_APPLY"
 done
