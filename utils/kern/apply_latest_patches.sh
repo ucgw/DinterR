@@ -5,7 +5,6 @@ patchfile_regex='([a-zA-Z0-9\_\-\.]+)\#([0-9]+)\.'
 curr_source_code=''
 latest_version=1
 latest_patch=''
-latest_code=''
 patch_init=''
 patches_to_apply=()
 
@@ -15,22 +14,13 @@ for PATCH in `ls $PATCH_DIR`;do
     if [ "X$source_code" != "X" ];then
         current_version=${BASH_REMATCH[2]}
 
-        if [ "$curr_source_code" != "$source_code" ];then
-            curr_source_code=$source_code
-            if [ "X$latest_patch" != "X" ];then
-                [[ $latest_patch =~ $patchfile_regex ]]
-                latest_code=${BASH_REMATCH[1]}
-
-                if [ "X$latest_code" == "X" ];then
-                    patches_to_apply+=( $PATCH )
-                    latest_version=$current_version
-                else
-                #elif [ "$latest_code" != "$curr_source_code" ];then
-                    patches_to_apply+=( $latest_patch)
-                fi
-            fi
-
+        if [ "X$curr_source_code" != "X" ] && \
+           [ "$curr_source_code" != "$source_code" ];then
+            patches_to_apply+=( $latest_patch)
+            latest_version=1
         fi
+
+        curr_source_code=$source_code
 
         if [ "$latest_version" -lt "$current_version" ];then
             latest_version=$current_version
