@@ -31,6 +31,8 @@ done
 
 patches_to_apply+=( $latest_patch )
 
+./revert_origs.sh 2> /dev/null
+
 for PATCH_APPLY in "${patches_to_apply[@]}";do
     >&2 echo "Applying == $PATCH_APPLY =="
     patch -d/ -b -V numbered -p0 < "$PATCH_DIR/$PATCH_APPLY"
