@@ -65,18 +65,9 @@ handle_events(int fd, int *wd, int argc, char* argv[])
 
             /* Print event type */
 
-            if (event->mask & IN_OPEN)
-                printf("IN_OPEN: ");
-            if (event->mask & IN_CLOSE_NOWRITE)
-                printf("IN_CLOSE_NOWRITE: ");
-            if (event->mask & IN_CLOSE_WRITE)
-                printf("IN_CLOSE_WRITE: ");
-
-            /* Print the name of the watched directory */
-
             for (int i = 1; i < argc; ++i) {
                 if (wd[i] == event->wd) {
-                    printf("%s/", argv[i]);
+                    printf("%s", argv[i]);
                     break;
                 }
             }

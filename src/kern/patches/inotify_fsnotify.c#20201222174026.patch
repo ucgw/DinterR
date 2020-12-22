@@ -1,5 +1,5 @@
---- /home/dinter/csce499/linux-4.19.143/fs/notify/inotify/inotify_fsnotify.c.orig	2020-12-16 22:07:24.580026111 -0600
-+++ /home/dinter/csce499/linux-4.19.143/fs/notify/inotify/inotify_fsnotify.c	2020-12-19 15:19:47.301453562 -0600
+--- /home/dinter/csce499/linux-4.19.143/fs/notify/inotify/inotify_fsnotify.c.orig	2020-12-22 11:23:27.935898209 -0600
++++ /home/dinter/csce499/linux-4.19.143/fs/notify/inotify/inotify_fsnotify.c	2020-12-22 17:08:38.639962903 -0600
 @@ -64,6 +64,7 @@
  	return event_compare(last_event, event);
  }
@@ -28,7 +28,7 @@
 -			return 0;
 +        fsn_data = NULL;
 +	if (data_type == FSNOTIFY_EVENT_INODE_PLUS) {
-+		fsn_data = kmalloc(sizeof(struct fsnotify_extra_data),
++		fsn_data = kzalloc(sizeof(struct fsnotify_extra_data),
 +				GFP_KERNEL);
 +		if (unlikely(!fsn_data)) {
 +			fsnotify_queue_overflow(group);
