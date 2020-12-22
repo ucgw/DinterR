@@ -8,4 +8,5 @@ for SRCFILE in `$crafted_find -name "*.orig" 2>/dev/null`;do
   changed_files+=" $FILENAME"
 done
 
+# apply mtime ordering
 ls -t $changed_files
