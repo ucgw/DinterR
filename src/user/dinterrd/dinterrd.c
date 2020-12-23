@@ -64,6 +64,14 @@ handle_events(int fd, int *wd, int argc, char* argv[])
             event = (const struct inotify_event *) ptr;
 
             /* Print event type */
+            if (event->mask & IN_OPEN)
+                printf("IN_OPEN: ");
+            if (event->mask & IN_CLOSE_NOWRITE)
+                printf("IN_CLOSE_NOWRITE: ");
+            if (event->mask & IN_CLOSE_WRITE)
+                printf("IN_CLOSE_WRITE: ");
+            if (event->mask & IN_ACCESS)
+                printf("IN_ACCESS: ");
 
             for (int i = 1; i < argc; ++i) {
                 if (wd[i] == event->wd) {
@@ -84,7 +92,8 @@ handle_events(int fd, int *wd, int argc, char* argv[])
             }
             else {
                 printf(" [file]\n");
-                printf(" pos: %llu - count: %lu\n", (long long)(event->pos), (unsigned long)(event->count));
+                if (event->mask & IN_ACCESS)
+                    printf(" pos: %llu - count: %lu\n", (long long)(event->pos), (unsigned long)(event->count));
             }
         }
     }
@@ -128,8 +137,7 @@ main(int argc, char* argv[])
      */
 
     for (i = 1; i < argc; i++) {
-        wd[i] = inotify_add_watch(fd, argv[i],
-                                  IN_OPEN | IN_CLOSE);
+        wd[i] = inotify_add_watch(fd, argv[i], IN_ALL_EVENTS);
         if (wd[i] == -1) {
             fprintf(stderr, "Cannot watch '%s': %s\n",
                     argv[i], strerror(errno));
@@ -179,6 +187,7 @@ main(int argc, char* argv[])
 
                 handle_events(fd, wd, argc, argv);
             }
+        printf("====================\n");
         }
     }
 
