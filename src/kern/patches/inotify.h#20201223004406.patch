@@ -1,0 +1,11 @@
+--- /home/dinter/csce499/linux-4.19.143/include/uapi/linux/inotify.h.orig	2020-12-22 23:33:47.330549157 -0600
++++ /home/dinter/csce499/linux-4.19.143/include/uapi/linux/inotify.h	2020-12-22 23:33:47.136548699 -0600
+@@ -24,6 +24,8 @@
+ 	__u32		cookie;		/* cookie to synchronize two events */
+ 	__u32		len;		/* length (including nulls) of name */
+ 	char		name[0];	/* stub for possible name */
++	size_t		count;
++	loff_t		pos;		
+ };
+ 
+ /* the following are legal, implemented events that user-space can watch for */
