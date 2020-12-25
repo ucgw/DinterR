@@ -93,7 +93,7 @@ handle_events(int fd, int *wd, int argc, char* argv[])
             else {
                 printf(" [file]\n");
                 if (event->mask & IN_ACCESS)
-                    printf(" pos: %llu - count: %lu\n", (long long)(event->pos), (unsigned long)(event->count));
+                    printf(" pos: %llu - count: %d\n", event->pos, (int)event->count);
             }
         }
     }
