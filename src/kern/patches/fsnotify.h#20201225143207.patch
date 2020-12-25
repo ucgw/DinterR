@@ -1,0 +1,26 @@
+--- /home/dinter/csce499/linux-4.19.143/include/linux/fsnotify.h.orig	2020-12-22 23:33:47.328549153 -0600
++++ /home/dinter/csce499/linux-4.19.143/include/linux/fsnotify.h	2020-12-25 14:01:38.427128710 -0600
+@@ -171,18 +171,21 @@
+ /*
+  * fsnotify_access - file was read
+  */
+-static inline void fsnotify_access(struct file *file)
++static inline void fsnotify_access(struct file *file, ssize_t count, loff_t pos)
+ {
+ 	const struct path *path = &file->f_path;
+ 	struct inode *inode = file_inode(file);
++        struct fsnotify_extra_data fs_xdata;
+ 	__u32 mask = FS_ACCESS;
+ 
+ 	if (S_ISDIR(inode->i_mode))
+ 		mask |= FS_ISDIR;
+ 
+ 	if (!(file->f_mode & FMODE_NONOTIFY)) {
++		fs_xdata.count = count;
++		fs_xdata.pos = pos;
+ 		fsnotify_parent(path, NULL, mask);
+-		fsnotify(inode, mask, path, FSNOTIFY_EVENT_PATH, NULL, 0);
++		fsnotify(inode, mask, &fs_xdata, FSNOTIFY_EVENT_INODE_PLUS, NULL, 0);
+ 	}
+ }
+ 
