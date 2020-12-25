@@ -1,0 +1,63 @@
+--- /home/dinter/csce499/linux-4.19.143/fs/read_write.c.orig	2020-12-22 23:33:47.323549141 -0600
++++ /home/dinter/csce499/linux-4.19.143/fs/read_write.c	2020-12-25 01:34:50.328270028 -0600
+@@ -436,7 +436,7 @@
+ 
+ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
+ {
+-	ssize_t ret;
++	ssize_t ret, fnret;
+ 
+ 	if (!(file->f_mode & FMODE_READ))
+ 		return -EBADF;
+@@ -451,7 +451,11 @@
+ 			count =  MAX_RW_COUNT;
+ 		ret = __vfs_read(file, buf, count, pos);
+ 		if (ret > 0) {
+-			fsnotify_access(file);
++			fnret = ret;
++			if (file->f_inode->i_size == *pos)
++				fnret *= -1;
++
++			fsnotify_access(file, (size_t)fnret, *pos);
+ 			add_rchar(current, ret);
+ 		}
+ 		inc_syscr(current);
+@@ -924,8 +928,9 @@
+ 	else
+ 		ret = do_loop_readv_writev(file, iter, pos, READ, flags);
+ out:
+-	if (ret >= 0)
+-		fsnotify_access(file);
++	if (ret >= 0) {
++		fsnotify_access(file, (size_t)ret, *pos);
++	}
+ 	return ret;
+ }
+ 
+@@ -1450,7 +1455,7 @@
+ 	if (retval > 0) {
+ 		add_rchar(current, retval);
+ 		add_wchar(current, retval);
+-		fsnotify_access(in.file);
++		fsnotify_access(in.file, (size_t)retval, pos);
+ 		fsnotify_modify(out.file);
+ 		out.file->f_pos = out_pos;
+ 		if (ppos)
+@@ -1616,7 +1621,7 @@
+ 
+ done:
+ 	if (ret > 0) {
+-		fsnotify_access(file_in);
++		fsnotify_access(file_in, (size_t)ret, pos_in);
+ 		add_rchar(current, ret);
+ 		fsnotify_modify(file_out);
+ 		add_wchar(current, ret);
+@@ -1900,7 +1905,7 @@
+ 	ret = file_in->f_op->clone_file_range(file_in, pos_in,
+ 			file_out, pos_out, len);
+ 	if (!ret) {
+-		fsnotify_access(file_in);
++		fsnotify_access(file_in, (size_t)ret, pos_in);
+ 		fsnotify_modify(file_out);
+ 	}
+ 
