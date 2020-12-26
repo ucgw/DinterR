@@ -1,0 +1,39 @@
+--- /home/dinter/csce499/linux-4.19.143/include/linux/fsnotify_backend.h.orig	2020-12-22 23:33:47.326549148 -0600
++++ /home/dinter/csce499/linux-4.19.143/include/linux/fsnotify_backend.h	2020-12-25 18:51:15.694085544 -0600
+@@ -115,6 +115,13 @@
+ 	void (*free_mark)(struct fsnotify_mark *mark);
+ };
+ 
++/* DinterR extra data struct */
++struct fsnotify_extra_data {
++	ssize_t count;
++	loff_t pos;
++	pid_t pid;
++};
++
+ /*
+  * all of the information about the original object we want to now send to
+  * a group.  If you want to carry more info from the accessing task to the
+@@ -125,6 +132,8 @@
+ 	/* inode may ONLY be dereferenced during handle_event(). */
+ 	struct inode *inode;	/* either the inode the event happened to or its parent */
+ 	u32 mask;		/* the type of access, bitwise OR for FS_* event types */
++	/* DinterR extra data */
++	struct fsnotify_extra_data extra;
+ };
+ 
+ /*
+@@ -203,10 +212,12 @@
+ 	};
+ };
+ 
+-/* when calling fsnotify tell it if the data is a path or inode */
++/* DinterR extra data is type FSNOTIFY_EVENT_INODE_PLUS */
++/* when calling fsnotify tell it if the data is a path or inode or...something more */
+ #define FSNOTIFY_EVENT_NONE	0
+ #define FSNOTIFY_EVENT_PATH	1
+ #define FSNOTIFY_EVENT_INODE	2
++#define FSNOTIFY_EVENT_INODE_PLUS 3
+ 
+ enum fsnotify_obj_type {
+ 	FSNOTIFY_OBJ_TYPE_INODE,
