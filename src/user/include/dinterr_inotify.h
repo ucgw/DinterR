@@ -39,6 +39,7 @@ struct inotify_event
   uint32_t len;		/* Length (including NULs) of name.  */
   dinterr_count_t count;
   dinterr_pos_t   pos;
+  dinterr_pid_t   pid;
   char name __flexarr;	/* Name.  */
 };
 

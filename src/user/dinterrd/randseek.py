@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import random
+import os
 
 randpos1 = random.randint(10,20);
 randpos2 = random.randint(10,20);
@@ -29,3 +30,5 @@ with open('Makefile', 'r') as fh:
     fh.seek(-randpos4, 2)
     print(fh.tell())
     print(fh.readline().decode('utf-8'))
+
+print("PID: {0}".format(os.getpid()))
