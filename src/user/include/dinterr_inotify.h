@@ -40,7 +40,10 @@ struct inotify_event
   dinterr_count_t count;
   dinterr_pos_t   pos;
   dinterr_pid_t   pid;
-  dinterr_ts_t    atime;
+  dinterr_ts_t    fse_atime;
+  unsigned int    ra_page_count;
+  unsigned int    ra_misses;
+  dinterr_pos_t   last_cached_pos;
   char name __flexarr;	/* Name.  */
 };
 

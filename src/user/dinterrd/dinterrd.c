@@ -95,7 +95,10 @@ handle_events(int fd, int *wd, int argc, char* argv[])
                 if (event->mask & IN_ACCESS) {
                     printf(" pos: %llu - count: %d\n", event->pos, (int)event->count);
                     printf("    * pid: %d *\n", (int)event->pid);
-                    printf("    * timestamp: %ld.%06ld *\n", event->atime.tv_sec, event->atime.tv_usec);
+                    printf("    * timestamp: %ld.%06ld *\n", event->fse_atime.tv_sec, event->fse_atime.tv_usec);
+                    printf("    * readahead page count: %u *\n", event->ra_page_count);
+                    printf("    * readahead cache misses: %u *\n", event->ra_misses);
+                    printf("    * readahead last cached pos: %llu *\n", event->last_cached_pos);
                 }
             }
         }
