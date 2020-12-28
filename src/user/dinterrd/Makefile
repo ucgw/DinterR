@@ -2,6 +2,7 @@ CC=gcc
 CFLAGS=-std=gnu99 -Wall -g -I../include
 
 TARGET=dinterrd
+DINTERR_FILE=bigfile
 
 $(TARGET): $(TARGET).c
 	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).c
@@ -10,4 +11,4 @@ $(TARGET): $(TARGET).c
 	$(CC) -o $@ -c $*.c
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(DINTERR_FILE)
