@@ -1,0 +1,120 @@
+--- /home/dinter/csce499/linux-4.19.143/fs/notify/inotify/inotify_fsnotify.c.orig	2020-12-22 23:33:47.320549134 -0600
++++ /home/dinter/csce499/linux-4.19.143/fs/notify/inotify/inotify_fsnotify.c	2020-12-27 22:17:18.598901274 -0600
+@@ -29,8 +29,9 @@
+ #include <linux/path.h> /* struct path */
+ #include <linux/slab.h> /* kmem_* */
+ #include <linux/types.h>
+-#include <linux/sched.h>
++#include <linux/sched.h> /* asm/current.h -> current */
+ #include <linux/sched/user.h>
++#include <linux/sched/signal.h>
+ #include <linux/sched/mm.h>
+ 
+ #include "inotify.h"
+@@ -64,6 +65,17 @@
+ 	return event_compare(last_event, event);
+ }
+ 
++/* inotify_merge_none always returns false because it is analogous
++ * to event_compare, so we are saying that every event should be
++ * processed.
++ */
++static int inotify_merge_none(struct list_head *list,
++				struct fsnotify_event *event)
++{
++	return false;
++}
++
++/* DinterR Update */
+ int inotify_handle_event(struct fsnotify_group *group,
+ 			 struct inode *inode,
+ 			 u32 mask, const void *data, int data_type,
+@@ -74,6 +86,7 @@
+ 	struct inotify_inode_mark *i_mark;
+ 	struct inotify_event_info *event;
+ 	struct fsnotify_event *fsn_event;
++	struct fsnotify_extra_data *fsn_data;
+ 	int ret;
+ 	int len = 0;
+ 	int alloc_len = sizeof(struct inotify_event_info);
+@@ -81,13 +94,18 @@
+ 	if (WARN_ON(fsnotify_iter_vfsmount_mark(iter_info)))
+ 		return 0;
+ 
++        fsn_data = NULL;
++	if (data_type == FSNOTIFY_EVENT_INODE_PLUS)
++		fsn_data = (struct fsnotify_extra_data*)data;
++
+ 	if ((inode_mark->mask & FS_EXCL_UNLINK) &&
+-	    (data_type == FSNOTIFY_EVENT_PATH)) {
+-		const struct path *path = data;
++            (data_type == FSNOTIFY_EVENT_PATH)) {
++	        const struct path *path = data;
+ 
+-		if (d_unlinked(path->dentry))
+-			return 0;
++	        if (d_unlinked(path->dentry))
++		        return 0;
+ 	}
++
+ 	if (file_name) {
+ 		len = strlen(file_name);
+ 		alloc_len += len + 1;
+@@ -118,6 +136,36 @@
+ 	}
+ 
+ 	fsn_event = &event->fse;
++        /* DinterR extra data */
++	if (fsn_data) {
++		fsn_event->extra.count = fsn_data->count;
++		fsn_event->extra.pos = fsn_data->pos;
++		/* atime is a struct timeval, so we simply set each
++		 * field of atime on the notify event struct
++		 * to its related field on the input data atime struct.
++		 */
++		fsn_event->extra.atime.tv_sec = fsn_data->atime.tv_sec;
++		fsn_event->extra.atime.tv_usec = fsn_data->atime.tv_usec;
++		/* override pid placeholder here. can't reference task_struct
++ 		 * directly. uses the smaller internal kernel struct pid
++ 		 * in order to get at the pid interacting with the file.
++ 		 *
++ 		 * - reference: include/linux/pid.h  (see What is struct pid?)
++ 		 * 
++ 		 * (via asm/current.h included in linux/sched.h)
++ 		 * current: macro that returns a task_struct*
++ 		 * 
++ 		 * (via linux/sched/signal.h)
++ 		 * task_tgid: function returning a kernel internal struct pid*
++ 		 *
++ 		 * (via linux/pid.h)
++ 		 * get_pid: increments kernel internal struct pid* ref count
++ 		 *
++ 		 * (via linux/pid.h)
++ 		 * pid_vnr: returns the pid_t value held in struct pid*
++ 		 */
++		fsn_event->extra.pid = pid_vnr(get_pid(task_tgid(current)));
++	}
+ 	fsnotify_init_event(fsn_event, inode, mask);
+ 	event->wd = i_mark->wd;
+ 	event->sync_cookie = cookie;
+@@ -125,7 +173,19 @@
+ 	if (len)
+ 		strcpy(event->name, file_name);
+ 
+-	ret = fsnotify_add_event(group, fsn_event, inotify_merge);
++	if (fsn_data) {
++		/*
++	 	 * for IN_ACCESS events and DinterR extra data, we 
++	 	 * don't want merge any events (aka remove them)
++	 	 * so passing inotify_merge_none as fn pointer which
++	 	 * always returns false.
++	 	 */
++		ret = fsnotify_add_event(group, fsn_event, inotify_merge_none);
++	}
++	else {
++		ret = fsnotify_add_event(group, fsn_event, inotify_merge);
++	}
++
+ 	if (ret) {
+ 		/* Our event wasn't used in the end. Free it. */
+ 		fsnotify_destroy_event(group, fsn_event);

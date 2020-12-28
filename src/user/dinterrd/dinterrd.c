@@ -95,6 +95,7 @@ handle_events(int fd, int *wd, int argc, char* argv[])
                 if (event->mask & IN_ACCESS) {
                     printf(" pos: %llu - count: %d\n", event->pos, (int)event->count);
                     printf("    * pid: %d *\n", (int)event->pid);
+                    printf("    * timestamp: %ld.%06ld *\n", event->atime.tv_sec, event->atime.tv_usec);
                 }
             }
         }
