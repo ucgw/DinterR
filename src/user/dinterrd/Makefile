@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-std=gnu99 -Wall -g -I../include
 
-TARGET=dinterrd
+TARGET=inotify_test
 DINTERR_FILE=bigfile
 
 $(TARGET): $(TARGET).c
