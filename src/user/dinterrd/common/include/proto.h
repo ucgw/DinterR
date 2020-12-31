@@ -53,8 +53,9 @@ enum class DinterrTransportState {
   CLOSE
 };
 
-/* enum describing the kinds of data expected
+/* enum class describing the kinds of data expected
  * and enforced in TCP payloads of DinterR records
+ * via "typestates"
  */
 enum class DinterrRecordState {
   INIT,
