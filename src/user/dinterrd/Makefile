@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-std=gnu99 -Wall -g -I../include
+CFLAGS=-std=gnu99 -Wall -g -I./common/include
 
 TARGET=inotify_test
 DINTERR_FILE=bigfile
