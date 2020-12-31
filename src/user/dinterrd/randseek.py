@@ -22,25 +22,25 @@ with open(FILE_TO_TEST, 'r') as fh:
     print(fh.tell())
     #print(fh.readline().decode('utf-8'))
 
-#with open(FILE_TO_TEST, 'r') as fh:
+with open(FILE_TO_TEST, 'r') as fh:
     print("Random Pos (from end): {0}".format(-randpos1))
     fh.seek(-randpos1, 2)
     print(fh.tell())
     #print(fh.readline().decode('utf-8'))
 
-#with open(FILE_TO_TEST, 'r') as fh:
+with open(FILE_TO_TEST, 'r') as fh:
     print("Random Pos (from start): {0}".format(randpos2))
     fh.seek(randpos2, 0)
     print(fh.tell())
     #print(fh.readline().decode('utf-8'))
 
-#with open(FILE_TO_TEST, 'r') as fh:
+with open(FILE_TO_TEST, 'r') as fh:
     print("Random Pos (from end): {0}".format(-randpos4))
     fh.seek(-randpos4, 2)
     print(fh.tell())
     #print(fh.readline().decode('utf-8'))
 
-#with open(FILE_TO_TEST, 'r') as fh:
+with open(FILE_TO_TEST, 'r') as fh:
     print("Random Pos (from start): {0}".format(randpos5))
     fh.seek(randpos5, 0)
     print(fh.tell())
@@ -52,25 +52,25 @@ with open(FILE_TO_TEST, 'r') as fh:
     print(fh.tell())
     #print(fh.readline().decode('utf-8'))
 
-#with open(FILE_TO_TEST, 'r') as fh:
+with open(FILE_TO_TEST, 'r') as fh:
     print("Random Pos (from start): {0}".format(randpos8))
     fh.seek(randpos8, 0)
     print(fh.tell())
     #print(fh.readline().decode('utf-8'))
 
-#with open(FILE_TO_TEST, 'r') as fh:
+with open(FILE_TO_TEST, 'r') as fh:
     print("Random Pos (from start): {0}".format(randpos9))
     fh.seek(randpos9, 0)
     print(fh.tell())
     #print(fh.readline().decode('utf-8'))
 
-#with open(FILE_TO_TEST, 'r') as fh:
+with open(FILE_TO_TEST, 'r') as fh:
     print("Random Pos (from start): {0}".format(randpos10))
     fh.seek(randpos10, 0)
     print(fh.tell())
     #print(fh.readline().decode('utf-8'))
 
-#with open(FILE_TO_TEST, 'r') as fh:
+with open(FILE_TO_TEST, 'r') as fh:
     print("Random Pos (from start): {0}".format(randpos11))
     fh.seek(randpos11, 0)
     print(fh.tell())
