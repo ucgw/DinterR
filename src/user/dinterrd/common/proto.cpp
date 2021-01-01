@@ -15,18 +15,7 @@
  * (requires -std=c++2a (i.e. c++ 20 standard))
  */
 
-using DinterrSerialData = \
-std::tuple<
-  uLong,
-  unsigned char,
-  dinterr_pos_t,
-  dinterr_count_t,
-  dinterr_pid_t,
-  unsigned int,
-  unsigned int,
-  dinterr_pos_t,
-  dinterr_ts_t
->;
+using DinterrSerialData = std::tuple<dinterr_data_t*>;
 
 /* forward reference used as a friend class
  * to gain access for instantiation of 
@@ -54,122 +43,92 @@ class DinterrData {
         template <DinterrRecordState>
         friend class ::DinterrRecordBuilder;
 
-        /* Dinterr data to be serialized for transport
-         * over a network
+        /* Dinterr data that will be populated from
+         * modified inotify fsnotify_access events
          */
-        uLong           _crc;  // uLong from zlib.h
-        unsigned char   _attrs;
-        dinterr_pos_t   _pos;
-        dinterr_count_t _count;
-        dinterr_pid_t   _pid;
-        dinterr_ts_t    _timestamp;
-        unsigned int    _ra_page_count;
-        unsigned int    _ra_cache_misses;
-        dinterr_pos_t   _ra_last_cache_pos;
+        dinterr_data_t _data;
 
     public:
         DinterrSerialData
         serialize() && {
-            return DinterrSerialData(
-                       _crc,
-                       _attrs,
-                       _pos,
-                       _count,
-                       _pid,
-                       _ra_page_count,
-                       _ra_cache_misses,
-                       _ra_last_cache_pos,
-                       _timestamp);
+            return DinterrSerialData(&_data);
         }
 
         void calc_crc(void) {
             uLong tcrc;
 
             tcrc = crc32(0L, Z_NULL, 0);
-            tcrc = crc32(tcrc, (const Bytef*)&_attrs, sizeof(_attrs));
-            tcrc = crc32(tcrc, (const Bytef*)&_pos, sizeof(_pos));
-            tcrc = crc32(tcrc, (const Bytef*)&_count, sizeof(_count));
-            tcrc = crc32(tcrc, (const Bytef*)&_pid, sizeof(_pid));
 
-            if (is_attr_set(&_attrs, DINTERR_ATTR_READAHEAD)) {
-                tcrc = crc32(tcrc, (const Bytef*)&_ra_page_count, sizeof(_ra_page_count));
-                tcrc = crc32(tcrc, (const Bytef*)&_ra_cache_misses, sizeof(_ra_cache_misses));
+            tcrc = crc32(tcrc, (const Bytef*)&_data._attrs,
+                           sizeof(_data._attrs));
+            tcrc = crc32(tcrc, (const Bytef*)&_data._pos,
+                           sizeof(_data._pos));
+            tcrc = crc32(tcrc, (const Bytef*)&_data._count,
+                           sizeof(_data._count));
+            tcrc = crc32(tcrc, (const Bytef*)&_data._pid,
+                           sizeof(_data._pid));
+
+            if (is_attr_set(&_data._attrs, DINTERR_ATTR_READAHEAD)) {
+                tcrc = crc32(tcrc, (const Bytef*)&_data._ra_page_count,
+                               sizeof(_data._ra_page_count));
+                tcrc = crc32(tcrc, (const Bytef*)&_data._ra_cache_misses,
+                               sizeof(_data._ra_cache_misses));
             }
 
-            tcrc = crc32(tcrc, (const Bytef*)&_ra_last_cache_pos, sizeof(_ra_last_cache_pos));
-            tcrc = crc32(tcrc, (const Bytef*)&_timestamp.tv_sec, sizeof(_timestamp.tv_sec));
-            tcrc = crc32(tcrc, (const Bytef*)&_timestamp.tv_usec, sizeof(_timestamp.tv_usec));
-            _crc = std::move(tcrc);
+            tcrc = crc32(tcrc, (const Bytef*)&_data._ra_last_cache_pos,
+                           sizeof(_data._ra_last_cache_pos));
+            tcrc = crc32(tcrc, (const Bytef*)&_data._timestamp.tv_sec,
+                           sizeof(_data._timestamp.tv_sec));
+            tcrc = crc32(tcrc, (const Bytef*)&_data._timestamp.tv_usec,
+                           sizeof(_data._timestamp.tv_usec));
+
+            _data._crc = std::move(tcrc);
         }
 
         /*
          * accessor methods for checking once in CHECKSUM state.
          * mainly used for debugging calc_crc() function calls.
+         * add more methods if needed, however, methods must be
+         * updated via a PROTENC_DECLARE_QUERY_METHOD and ValidQuery
+         * per method.
          */
         uLong get_crc(void) const {
-            return _crc;
-        }
-        unsigned char get_attrs(void) const {
-            return _attrs;
-        }
-        dinterr_pos_t get_pos(void) const {
-            return _pos;
-        }
-        dinterr_count_t get_count(void) const {
-            return _count;
-        }
-        dinterr_pid_t get_pid(void) const {
-            return _pid;
-        }
-        unsigned int get_ra_page_count(void) const {
-            return _ra_page_count;
-        }
-        unsigned int get_ra_cache_misses(void) const {
-            return _ra_cache_misses;
-        }
-        dinterr_pos_t get_ra_last_cache_pos(void) const {
-            return _ra_last_cache_pos;
-        }
-        long int get_ts_sec(void) const {
-            return _timestamp.tv_sec;
-        }
-        long int get_ts_usec(void) const {
-            return _timestamp.tv_usec;
+            return _data._crc;
         }
 
         /*
          * modifier methods setting private data via typestates fsm
          */
         void add_attrs(unsigned char attrs) {
-            _attrs = std::move(attrs);
+            _data._attrs = std::move(attrs);
         }
 
         void add_pos(dinterr_pos_t pos) {
-            _pos = std::move(pos);
+            _data._pos = std::move(pos);
         }
 
         void add_count(dinterr_count_t count) {
-            _count = std::move(count);
+            _data._count = std::move(count);
         }
 
         void add_pid(dinterr_pid_t pid) {
-            _pid = std::move(pid);
+            _data._pid = std::move(pid);
         }
 
         void add_timestamp(dinterr_ts_t *timestamp) {
-            _timestamp = std::move(*timestamp);
+            _data._timestamp = std::move(*timestamp);
         }
 
         void add_ra_page_count(unsigned int ra_page_count) {
-            _ra_page_count = std::move(ra_page_count);
+            _data._ra_page_count = std::move(ra_page_count);
         }
 
         void add_ra_cache_misses(unsigned int ra_cache_misses) {
-            _ra_cache_misses = std::move(ra_cache_misses);
+            _data._ra_cache_misses = std::move(ra_cache_misses);
         }
 
         void add_ra_last_cache_pos(dinterr_pos_t ra_last_cache_pos) {
-            _ra_last_cache_pos = std::move(ra_last_cache_pos);
+            _data._ra_last_cache_pos = std::move(ra_last_cache_pos);
         }
 };
 
@@ -215,16 +174,7 @@ using MyFinalTransitions = FinalTransitions<
     FinalTransition<DinterrRecordState::CHECKSUM, &DinterrData::serialize>
 >;
 using MyValidQueries = ValidQueries<
-    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_crc>,
-    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_attrs>,
-    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_pos>,
-    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_count>,
-    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_pid>,
-    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_ra_page_count>,
-    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_ra_cache_misses>,
-    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_ra_last_cache_pos>,
-    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_ts_sec>,
-    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_ts_usec>
+    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_crc>
 >;
 PROTENC_START_WRAPPER(DinterrRecordBuilder, DinterrData, DinterrRecordState,
                       MyInitialStates, MyTransitions, MyFinalTransitions,
@@ -243,15 +193,6 @@ PROTENC_DECLARE_TRANSITION(calc_crc);
 PROTENC_DECLARE_FINAL_TRANSITION(serialize);
 
 PROTENC_DECLARE_QUERY_METHOD(get_crc);
-PROTENC_DECLARE_QUERY_METHOD(get_attrs);
-PROTENC_DECLARE_QUERY_METHOD(get_pos);
-PROTENC_DECLARE_QUERY_METHOD(get_count);
-PROTENC_DECLARE_QUERY_METHOD(get_pid);
-PROTENC_DECLARE_QUERY_METHOD(get_ra_page_count);
-PROTENC_DECLARE_QUERY_METHOD(get_ra_cache_misses);
-PROTENC_DECLARE_QUERY_METHOD(get_ra_last_cache_pos);
-PROTENC_DECLARE_QUERY_METHOD(get_ts_sec);
-PROTENC_DECLARE_QUERY_METHOD(get_ts_usec);
 
 PROTENC_END_WRAPPER;
 

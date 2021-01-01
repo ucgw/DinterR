@@ -3,6 +3,8 @@
 
 #include <zlib.h>
 
+#include "dinterr.h"
+
 /* DinterR single record supported attributes
  * copied ATTR_* macro pattern from include/linux/fs.h
  * for DINTERR_ATTRs here.
@@ -37,22 +39,6 @@ static inline bool is_attr_set(unsigned char *attrs, int attr) {
     return false;
 }
 
-enum class DinterrTransportState {
-  INIT,
-  LOAD,
-  LOAD_ACK,
-  LOAD_FAIL,
-  CTS,
-  AGG,
-  REC,
-  DATA_ACK,
-  DATA_RESEND,
-  DATA_STOP,
-  DATA_RESUME,
-  DATA_FIN,
-  CLOSE
-};
-
 /* enum class describing the kinds of data expected
  * and enforced in TCP payloads of DinterR records
  * via "typestates"
@@ -69,6 +55,38 @@ enum class DinterrRecordState {
   RA_CACHE_MISSES,
   RA_LAST_CACHED_POS,
   SERIALIZE
+};
+
+/* Dinterr data to be serialized for transport
+ * over a network
+ */
+typedef struct dinterr_data {
+    uLong           _crc;  // uLong from zlib.h
+    unsigned char   _attrs;
+    dinterr_pos_t   _pos;
+    dinterr_count_t _count;
+    dinterr_pid_t   _pid;
+    dinterr_ts_t    _timestamp;
+    unsigned int    _ra_page_count;
+    unsigned int    _ra_cache_misses;
+    dinterr_pos_t   _ra_last_cache_pos;
+} dinterr_data_t;
+
+class DinterrSerdesData {
+    private:
+        void *_serdes;
+    public:
+        /* 2 different constructors based on input data type
+         * determines how class object is used.
+         *
+         * (i.e. whether object serializes or deserializes)
+         * serialize => input: dinterr_data_t*
+         * deserialize => input: char*
+         */
+        DinterrSerdesData(dinterr_data_t*);  // serialize mode
+        DinterrSerdesData(char*);            // deserialize mode
+        ~DinterrSerdesData();
+        void* get_data(void);
 };
 
 #endif // _PROTO_H_

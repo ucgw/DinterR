@@ -10,12 +10,12 @@ int main(int argc, char **argv) {
     dinterr_pos_t ra_last_cache_pos = 1900;
     unsigned int ra_page_count = 1;
     unsigned int ra_cache_misses = 1;
-    unsigned char attrs = 0;
+    unsigned char attrs = 1;
 
     timestamp.tv_usec = 788871;
     timestamp.tv_sec = 19;
 
-    set_attr(&attrs, DINTERR_ATTR_READAHEAD);
+    //set_attr(&attrs, DINTERR_ATTR_READAHEAD);
 
     auto test = dinterrRecord()
                 .add_attrs(attrs)
@@ -29,14 +29,4 @@ int main(int argc, char **argv) {
                 .calc_crc();
 
     std::cout << test.get_crc() << std::endl;
-    /*
-    std::cout << test.get_attrs() << std::endl;
-    std::cout << test.get_pos() << std::endl;
-    std::cout << test.get_pid() << std::endl;
-    std::cout << test.get_ra_page_count() << std::endl;
-    std::cout << test.get_ra_cache_misses() << std::endl;
-    std::cout << test.get_ra_last_cache_pos() << std::endl;
-    std::cout << test.get_ts_sec() << std::endl;
-    std::cout << test.get_ts_usec() << std::endl;
-    */
 }
