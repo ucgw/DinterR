@@ -1,7 +1,7 @@
 CC=g++
 #CFLAGS=-I./include -std=c++2a -Wall -pedantic -g -lz
 CFLAGS=-I./include -std=c++2a -pedantic -g -lz
-OBJS=dataproto.o dataproto_main.o
+OBJS=serdes.o dataproto.o dataproto_main.o
 
 TARGET1=dataproto_test
 

@@ -59,6 +59,9 @@ enum class DinterrRecordState {
 
 /* Dinterr data to be serialized for transport
  * over a network
+ *
+ * => IMPORTANT: Order Matters!!
+ *      Serialization occurs based on field order of this struct.
  */
 typedef struct dinterr_data {
     uLong           _crc;  // uLong from zlib.h
@@ -66,15 +69,16 @@ typedef struct dinterr_data {
     dinterr_pos_t   _pos;
     dinterr_count_t _count;
     dinterr_pid_t   _pid;
-    dinterr_ts_t    _timestamp;
     unsigned int    _ra_page_count;
     unsigned int    _ra_cache_misses;
     dinterr_pos_t   _ra_last_cache_pos;
+    dinterr_ts_t    _timestamp;
 } dinterr_data_t;
 
 class DinterrSerdesData {
     private:
         void *_serdes;
+        void _copy_push_along_ptrs(size_t, const char*, dinterr_data_t*);
     public:
         /* 2 different constructors based on input data type
          * determines how class object is used.
@@ -83,8 +87,8 @@ class DinterrSerdesData {
          * serialize => input: dinterr_data_t*
          * deserialize => input: char*
          */
-        DinterrSerdesData(dinterr_data_t*);  // serialize mode
-        DinterrSerdesData(char*);            // deserialize mode
+        DinterrSerdesData(const dinterr_data_t*); // serialize mode
+        DinterrSerdesData(const char*);           // deserialize mode
         ~DinterrSerdesData();
         void* get_data(void);
 };

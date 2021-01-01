@@ -1,8 +1,10 @@
+#include <stdio.h>
 #include <iostream>
 
 #include "dataproto.cpp"
 
 int main(int argc, char **argv) {
+    DinterrSerdesData *serdes;
     dinterr_count_t count = 11;
     dinterr_pos_t pos = 25;
     dinterr_pid_t pid = 1246;
@@ -12,10 +14,13 @@ int main(int argc, char **argv) {
     unsigned int ra_cache_misses = 1;
     unsigned char attrs = 1;
 
+    int i = 0;
+    char *serial_data;
+
     timestamp.tv_usec = 788871;
     timestamp.tv_sec = 19;
 
-    //set_attr(&attrs, DINTERR_ATTR_READAHEAD);
+    set_attr(&attrs, DINTERR_ATTR_READAHEAD);
 
     auto test = dinterrRecord()
                 .add_attrs(attrs)
@@ -29,4 +34,11 @@ int main(int argc, char **argv) {
                 .calc_crc();
 
     std::cout << test.get_crc() << std::endl;
+    serdes = test.get_serdes();
+    serial_data = (char*)serdes->get_data();
+
+    for (i; i < sizeof(dinterr_data_t); i++) {
+        printf("%02X ", serial_data[i]);
+    }
+    std::cout << std::endl;
 }

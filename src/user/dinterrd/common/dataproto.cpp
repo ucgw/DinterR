@@ -14,7 +14,7 @@
  * (requires -std=c++2a (i.e. c++ 20 standard))
  */
 
-using DinterrSerialData = std::tuple<dinterr_data_t*>;
+using DinterrSerialized = std::tuple<dinterr_data_t*>;
 
 /* forward reference used as a friend class
  * to gain access for instantiation of 
@@ -47,10 +47,15 @@ class DinterrData {
          */
         dinterr_data_t _data;
 
+        /* DinterrSerdesData object reference
+         * for serialization after crc is computed.
+         */
+       DinterrSerdesData *_serdes;
+
     public:
-        DinterrSerialData
+        DinterrSerialized
         serialize() && {
-            return DinterrSerialData(&_data);
+            return DinterrSerialized();
         }
 
         void calc_crc(void) {
@@ -82,6 +87,16 @@ class DinterrData {
                            sizeof(_data._timestamp.tv_usec));
 
             _data._crc = std::move(tcrc);
+
+            /* we have _crc, great, now serialize dinterr_data_t
+             * member struct and return a new instance of object.
+             *
+             * Note: important to scope this such that this instance
+             *       will be destroyed and reclaim back memory that
+             *       DinterrSerdesData objects allocate. The default
+             *       destructor will take care of freeing memory.
+             */
+            _serdes = new DinterrSerdesData(&_data);
         }
 
         /*
@@ -93,6 +108,9 @@ class DinterrData {
          */
         uLong get_crc(void) const {
             return _data._crc;
+        }
+        DinterrSerdesData* get_serdes(void) const {
+            return _serdes;
         }
 
         /*
@@ -173,7 +191,8 @@ using MyFinalTransitions = FinalTransitions<
     FinalTransition<DinterrRecordState::CHECKSUM, &DinterrData::serialize>
 >;
 using MyValidQueries = ValidQueries<
-    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_crc>
+    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_crc>,
+    ValidQuery<DinterrRecordState::CHECKSUM, &DinterrData::get_serdes>
 >;
 PROTENC_START_WRAPPER(DinterrRecordBuilder, DinterrData, DinterrRecordState,
                       MyInitialStates, MyTransitions, MyFinalTransitions,
@@ -192,6 +211,7 @@ PROTENC_DECLARE_TRANSITION(calc_crc);
 PROTENC_DECLARE_FINAL_TRANSITION(serialize);
 
 PROTENC_DECLARE_QUERY_METHOD(get_crc);
+PROTENC_DECLARE_QUERY_METHOD(get_serdes);
 
 PROTENC_END_WRAPPER;
 
