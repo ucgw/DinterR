@@ -77,7 +77,6 @@ typedef struct dinterr_data {
 class DinterrSerdesData {
     private:
         void *_serdes;
-        void _copy_push_along_ptrs(size_t, const char*, dinterr_data_t*);
     public:
         /* 2 different constructors based on input data type
          * determines how class object is used.
