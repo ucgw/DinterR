@@ -1,9 +1,9 @@
 CC=g++
 #CFLAGS=-I./include -std=c++2a -Wall -pedantic -g -lz
 CFLAGS=-I./include -std=c++2a -pedantic -g -lz
-OBJS=dataproto.o main.o
+OBJS=dataproto.o dataproto_main.o
 
-TARGET1=data_proto_test
+TARGET1=dataproto_test
 
 $(TARGET1): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET1) $(OBJS)
