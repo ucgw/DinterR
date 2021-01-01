@@ -8,6 +8,8 @@ TARGET1=dataproto_test
 $(TARGET1): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET1) $(OBJS)
 
+objs: $(OBJS)
+
 %.o: %.cpp
 	$(CC) $(CFLAGS) -o $@ -c $<
 
