@@ -5,6 +5,13 @@
 
 #include "dataproto.h"
 
+/*
+ * the major assumption is that both systems communicating
+ * together are of the same endianness. for this project's
+ * purpose, we will be using x86 systems, so the byte array
+ * will be in litte-endian format.
+ */
+
 DinterrSerdesData::DinterrSerdesData(const dinterr_data_t *data) {
     /* serialize dinterr_data_t -> byte array */
     this->_serdes = (char*)malloc(sizeof(dinterr_data_t));
