@@ -53,8 +53,7 @@ enum class DinterrRecordState {
   TIMESTAMP,
   RA_PAGE_COUNT,
   RA_CACHE_MISSES,
-  RA_LAST_CACHED_POS,
-  SERIALIZE
+  RA_LAST_CACHED_POS
 };
 
 /* Dinterr data to be serialized for transport
