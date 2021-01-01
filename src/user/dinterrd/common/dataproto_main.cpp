@@ -5,6 +5,8 @@
 
 int main(int argc, char **argv) {
     DinterrSerdesData *serdes;
+    DinterrSerdesData *unserdes;
+    
     dinterr_count_t count = 11;
     dinterr_pos_t pos = 25;
     dinterr_pid_t pid = 1246;
@@ -16,6 +18,7 @@ int main(int argc, char **argv) {
 
     int i = 0;
     char *serial_data;
+    dinterr_data_t *unserial_data;
 
     timestamp.tv_usec = 788871;
     timestamp.tv_sec = 19;
@@ -41,4 +44,8 @@ int main(int argc, char **argv) {
         printf("%02X ", serial_data[i]);
     }
     std::cout << std::endl;
+
+    unserdes = new DinterrSerdesData(serial_data);
+    unserial_data = (dinterr_data_t*)unserdes->get_data();
+    std::cout << unserial_data->_pid << std::endl;
 }
