@@ -1,6 +1,8 @@
 #ifndef _NETPROTO_H_
 #define _NETPROTO_H_
 
+#include "sml.hpp"
+
 enum class DinterrTransportState {
   INIT,
   LOAD,
@@ -9,12 +11,11 @@ enum class DinterrTransportState {
   CTS,
   AGG,
   REC,
-  DATA_ACK,
-  DATA_RESEND,
-  DATA_STOP,
-  DATA_RESUME,
+  DATA_RETRY,
   DATA_FIN,
-  CLOSE
+  DATA_FINACK,
+  LOAD_FIN,
+  LOAD_FINACK
 };
 
 #endif  // _NETPROTO_H_
