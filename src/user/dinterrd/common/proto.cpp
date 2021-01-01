@@ -1,8 +1,7 @@
 #include <utility>
 #include <tuple>
 
-#include "dinterr.h"
-#include "proto.h"
+#include "dataproto.h"
 #include "protenc.h"
 
 /* Dinterr Serialized Data Protocol implementation:
