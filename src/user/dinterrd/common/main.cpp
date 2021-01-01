@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "proto.cpp"
+#include "dataproto.cpp"
 
 int main(int argc, char **argv) {
     dinterr_count_t count = 11;
