@@ -1,5 +1,5 @@
-#ifndef _PROTO_H_
-#define _PROTO_H_
+#ifndef _DATAPROTO_H_
+#define _DATAPROTO_H_
 
 #include <zlib.h>
 
@@ -89,4 +89,4 @@ class DinterrSerdesData {
         void* get_data(void);
 };
 
-#endif // _PROTO_H_
+#endif // _DATAPROTO_H_
