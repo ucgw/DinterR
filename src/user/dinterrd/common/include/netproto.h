@@ -18,7 +18,7 @@
 namespace sml = boost::sml;
 
 namespace {
-/* events: (hold no data) */
+/* events */
 struct load_requested {};
 struct load_failed {};
 struct load_succeeded {};
