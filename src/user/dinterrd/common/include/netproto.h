@@ -19,19 +19,28 @@ namespace sml = boost::sml;
 
 namespace {
 /* events */
-struct load_requested {};
-struct load_failed {};
-struct load_succeeded {};
-struct record_data_ready_to_send {};
-struct aggregate_data_ready_to_send {};
-struct record_data_received {};
-struct record_data_retry_requested {};
-struct record_data_finished {};
-struct load_finish_requested {};
-struct load_finished {};
+struct load_request {};
+struct load_fail {};
+struct load_succeed {};
+struct data_send {};
+struct data_receive {};
+struct data_retry_request {};
+struct data_verify_confirm {};
+struct data_process {};
+struct data_purge {};
+struct unload_request {};
+struct unload_complete {};
 
-struct ddt_transitions {
-    auto operator()() const noexcept {
+/* state machine for the DDTP server */
+struct ddt_server {
+    auto operator()() const {
+    using namespace sml;
+    }
+};
+
+/* state machine for the DDTP client */
+struct ddt_client {
+    auto operator()() const {
     using namespace sml;
     }
 };
