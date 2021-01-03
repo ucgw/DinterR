@@ -62,8 +62,8 @@ struct ddtp_client {
            "data_wait"_s    + event<data_receive> = "data_verify"_s,
            "data_wait"_s    + event<unload_request> = "unload_pend"_s,
            "data_verify"_s  + event<data_retry_request> = "data_wait"_s,
-           "data_verify"_s  + event<data_verify_confirm> = "data_process"_s,
-           "data_process"_s + event<data_process> = "data_wait"_s,
+           "data_verify"_s  + event<data_process> = "data_process"_s,
+           "data_process"_s + event<data_verify_confirm> = "data_wait"_s,
            "unload_pend"_s  + event<unload_complete> = X
         );
     }

@@ -34,4 +34,10 @@ typedef struct dinterr_sock {
     uint16_t port;
 } dinterr_sock_t;
 
+void dinterr_sock_init(dinterr_sock_t*, int, const char* ipaddr=NULL);
+int dinterr_sock_create(dinterr_sock_t*, uint16_t);
+int _sock_read(dinterr_sock_t*, char*, int);
+int _sock_write(dinterr_sock_t*, char*);
+void dinterr_sock_destroy(dinterr_sock_t*);
+
 #endif // _SOCKIO_H_
