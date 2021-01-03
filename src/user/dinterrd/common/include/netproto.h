@@ -70,7 +70,10 @@ struct ddtp_client {
 };
 } // namespace
 
-/* DDT Protocol Types (akin to certain SML events) */
+/*
+ * DDT Protocol Types
+ * (akin to certain SML events)
+ */
 #define LOAD_REQUEST    0x1
 #define LOAD_FAIL       0x2
 #define LOAD_SUCCEED    0x3
@@ -79,5 +82,10 @@ struct ddtp_client {
 #define DATA_CONFIRM    0x6
 #define UNLOAD_REQUEST  0x7
 #define UNLOAD_COMPLETE 0x8
+
+typedef struct ddtp_msg {
+    short type;
+    void* msg;
+} ddtp_msg_t;
 
 #endif  // _NETPROTO_H_
