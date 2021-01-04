@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <iostream>
 
-#include "dataproto.h"
+#include "serdes.h"
 
 /*
  * the major assumption is that both systems communicating
@@ -19,6 +19,13 @@ DinterrSerdesData::DinterrSerdesData(const dinterr_data_t *data) {
         memcpy(this->_serdes, (char*)data, sizeof(dinterr_data_t));
 }
 
+DinterrSerdesNetwork::DinterrSerdesNetwork(const ddtp_msg_t *data) {
+    /* serialize ddtp_msg_t -> byte array */
+    this->_serdes = (char*)malloc(sizeof(*data));
+    if (this->_serdes)
+        memcpy(this->_serdes, (char*)data, sizeof(*data));
+}
+
 DinterrSerdesData::DinterrSerdesData(const char *data) {
     /* deserialize byte array -> dinterr_data_t */
     size_t field_size;
@@ -28,11 +35,24 @@ DinterrSerdesData::DinterrSerdesData(const char *data) {
         memcpy(this->_serdes, (dinterr_data_t*)data, sizeof(dinterr_data_t));
 }
 
-DinterrSerdesData::~DinterrSerdesData() {
+DinterrSerdesNetwork::DinterrSerdesNetwork(const char *data) {
+    /* deserialize byte array -> ddtp_msg_t */
+    size_t field_size;
+
+    /* we malloc sizeof() dereferenced input data because
+     * a ddtp_msg_t has a void* member which may in fact
+     * be variably sized in contrast to a dinterr_data_t
+     */
+    this->_serdes = (ddtp_msg_t*)malloc(sizeof(*data));
+    if (this->_serdes)
+        memcpy(this->_serdes, (ddtp_msg_t*)data, sizeof(*data));
+}
+
+DinterrSerdes::~DinterrSerdes() {
     if (this->_serdes)
         free(this->_serdes);
 }
 
-void* DinterrSerdesData::get_data(void) {
+void* DinterrSerdes::get_data(void) {
     return this->_serdes;
 }

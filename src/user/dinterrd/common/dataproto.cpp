@@ -2,6 +2,7 @@
 #include <tuple>
 
 #include "dataproto.h"
+#include "serdes.h"
 #include "protenc.h"
 
 /* Dinterr Serialized Data Protocol implementation:

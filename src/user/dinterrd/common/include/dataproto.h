@@ -74,21 +74,4 @@ typedef struct dinterr_data {
     dinterr_ts_t    _timestamp;
 } dinterr_data_t;
 
-class DinterrSerdesData {
-    private:
-        void *_serdes;
-    public:
-        /* 2 different constructors based on input data type
-         * determines how class object is used.
-         *
-         * (i.e. whether object serializes or deserializes)
-         * serialize => input: dinterr_data_t*
-         * deserialize => input: char*
-         */
-        DinterrSerdesData(const dinterr_data_t*); // serialize mode
-        DinterrSerdesData(const char*);           // deserialize mode
-        ~DinterrSerdesData();
-        void* get_data(void);
-};
-
 #endif // _DATAPROTO_H_

@@ -8,4 +8,5 @@
  * (requires minimum of -std=c++14 (i.e. c++ 14 standard))
  */
 
+#include "serdes.h"
 #include "netproto.h"
