@@ -48,5 +48,10 @@ int main(int argc, char **argv) {
     unserdes = new DinterrSerdesData(serial_data);
     unserial_data = (dinterr_data_t*)unserdes->get_data();
     std::cout << unserial_data->_pid << std::endl;
+
+    /* downside is that these serdes objects must be deleted
+     * because they are allocated on the heap.
+     */
     delete unserdes;
+    delete serdes;
 }
