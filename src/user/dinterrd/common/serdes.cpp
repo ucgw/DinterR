@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <cstdio>
-#include <iostream>
 
 #include "serdes.h"
 
