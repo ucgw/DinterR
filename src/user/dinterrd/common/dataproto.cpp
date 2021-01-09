@@ -94,8 +94,9 @@ class DinterrData {
              *
              * Note: important to scope this such that this instance
              *       will be destroyed and reclaim back memory that
-             *       DinterrSerdesData objects allocate. The default
-             *       destructor will take care of freeing memory.
+             *       DinterrSerdesData objects allocate. because
+             *       this memory allocated is on the heap, it is up
+             *       to the caller function to delete the object.
              */
             _serdes = new DinterrSerdesData(&_data);
         }

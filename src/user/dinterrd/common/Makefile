@@ -1,8 +1,8 @@
 CC=g++
 #CFLAGS=-I./include -std=c++2a -Wall -pedantic -g -lz
 CFLAGS=-I./include -std=c++2a -pedantic -g -lz
-OBJS_DATAPROTO=serdes.o dataproto.o dataproto_main.o netproto.o
-OBJS_NETPROTO=serdes.o netproto.o sockio.o netproto_main.o
+OBJS_DATAPROTO=serdes.o dataproto.o dataproto_main.o
+OBJS_NETPROTO=serdes.o sockio.o netproto_main.o
 
 TARGET1=dataproto_test
 TARGET2=netproto_test
