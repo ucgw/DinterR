@@ -1,17 +1,25 @@
 CC=g++
 #CFLAGS=-I./include -std=c++2a -Wall -pedantic -g -lz
 CFLAGS=-I./include -std=c++2a -pedantic -g -lz
-OBJS=serdes.o dataproto.o dataproto_main.o netproto.o
+OBJS_DATAPROTO=serdes.o dataproto.o dataproto_main.o netproto.o
+OBJS_NETPROTO=serdes.o netproto.o sockio.o netproto_main.o
 
 TARGET1=dataproto_test
+TARGET2=netproto_test
 
-$(TARGET1): $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET1) $(OBJS)
 
-objs: $(OBJS)
+all: $(TARGET1) $(TARGET2)
+
+$(TARGET1): $(OBJS_DATAPROTO)
+	$(CC) $(CFLAGS) -o $(TARGET1) $(OBJS_DATAPROTO)
+
+$(TARGET2): $(OBJS_NETPROTO)
+	$(CC) $(CFLAGS) -o $(TARGET2) $(OBJS_NETPROTO)
+
+objs: $(OBJS_DATAPROTO) $(OBJS_NETPROTO)
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
-	rm -f $(OBJS) $(TARGET1)
+	rm -f $(OBJS_DATAPROTO) $(OBJS_NETPROTO) $(TARGET1) $(TARGET2)

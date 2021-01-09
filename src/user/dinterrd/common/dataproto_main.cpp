@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
     dinterr_pos_t ra_last_cache_pos = 1900;
     unsigned int ra_page_count = 1;
     unsigned int ra_cache_misses = 1;
-    unsigned char attrs = 1;
+    unsigned char attrs = 0;
 
     int i = 0;
     char *serial_data;
@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     timestamp.tv_usec = 788871;
     timestamp.tv_sec = 19;
 
-    set_attr(&attrs, DINTERR_ATTR_READAHEAD);
+    //set_attr(&attrs, DINTERR_ATTR_READAHEAD);
 
     auto test = dinterrRecord()
                 .add_attrs(attrs)

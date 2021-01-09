@@ -1,9 +1,13 @@
 #ifndef _SOCKIO_H_
 #define _SOCKIO_H_
 
+#include <cstddef>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
+
+#define NOSOCKFD -1
 
 #define DINTERR_SERVER 0
 #define DINTERR_CLIENT 1
