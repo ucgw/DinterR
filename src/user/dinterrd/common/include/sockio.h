@@ -22,6 +22,7 @@
                                    nbytes)
 
 typedef struct dinterr_sock {
+    // either DINTERR_SERVER or DINTERR_CLIENT
     int type;
     union {
         int srv_sockfd;
