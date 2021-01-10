@@ -109,7 +109,7 @@ int dinterrd_accept(dinterr_sock_t* dsock) {
             src_port = htons(dsock->address.sin_port);
             cli_addr = inet_ntoa(dsock->address.sin_addr);
 
-            states[src_port] = sm;
+            states[src_port] = std::move(sm);
 
             if (dsock->verbose == true)
                 std::cerr << "dinterrd: client " << \
