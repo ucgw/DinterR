@@ -2,10 +2,10 @@
 #define _SERVER_H_
 
 #include <map>
+#include <iostream>
 
 #include "netproto.h"
 
-// map of src port to a state machine
-typedef std::map<uint16_t, sml::sm<ddtp_server>> SSM;
+int dinterrd_processor(char*, uint16_t);
 
 #endif // _SERVER_H_

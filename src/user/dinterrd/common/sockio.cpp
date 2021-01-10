@@ -3,6 +3,7 @@
 
 #include "sockio.h"
 #include "server.h"
+#include "sig.h"
 
 void dinterr_sock_init(dinterr_sock_t* dsock, int type, const char* ipaddr) {
     memset(dsock, 0, sizeof(*dsock));
@@ -92,7 +93,7 @@ sock_cleanup_fail:
 int dinterrd_accept(dinterr_sock_t* dsock) {
     if (dsock->type == DINTERR_SERVER) {
         int connsock = NOSOCKFD;
-        SSM states;
+
         while (true) {
             uint16_t src_port;
             char* cli_addr;
@@ -105,18 +106,19 @@ int dinterrd_accept(dinterr_sock_t* dsock) {
                 return(SOCKIO_FAIL);
             }
 
-            sml::sm<ddtp_server> sm;
             src_port = htons(dsock->address.sin_port);
             cli_addr = inet_ntoa(dsock->address.sin_addr);
-
-            states[src_port] = std::move(sm);
 
             if (dsock->verbose == true)
                 std::cerr << "dinterrd: client " << \
                              cli_addr << ":" << src_port << \
                              " connected" << std::endl;
 
-            /* handle protocol / requests */
+            /* handle protocol / requests. 
+             * for now, only one client
+             * at a time can be handled
+             */
+            dinterrd_processor(cli_addr, src_port);
 
             close(connsock);
             if (dsock->verbose == true)
