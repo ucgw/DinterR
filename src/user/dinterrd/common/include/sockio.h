@@ -39,13 +39,18 @@ typedef struct dinterr_sock {
     uint16_t port;
 } dinterr_sock_t;
 
-// helper functions to create an appropriate socket
+// helper functions to setup appropriate socket types
 // for either server or client
 void dinterr_sock_init(dinterr_sock_t*, int, const char* ipaddr=NULL);
 int dinterr_sock_create(dinterr_sock_t*, uint16_t);
 
-int _sock_read(dinterr_sock_t*, char*, int);
+// functions for server and client to accept and connect
+// for service
+int dinterrd_accept(dinterr_sock_t*);  // server
+int dinterrd_connect(dinterr_sock_t*); // client
+
+// basic data read / write over sockets
+int _sock_read(dinterr_sock_t*, char*, size_t);
 int _sock_write(dinterr_sock_t*, char*);
-void dinterr_sock_destroy(dinterr_sock_t*);
 
 #endif // _SOCKIO_H_

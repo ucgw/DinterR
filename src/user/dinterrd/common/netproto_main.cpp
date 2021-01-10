@@ -5,8 +5,10 @@
 #include "server.h"
 
 int main(int argc, char **argv) {
-    sml::sm<ddtp_server> ssm;
     dinterr_sock_t dsock;
+    uint16_t port = 9000;
+
     dinterr_sock_init(&dsock, DINTERR_SERVER);
-    dinterr_sock_create(&dsock, 9000);
+    dinterr_sock_create(&dsock, port);
+    dinterrd_accept(&dsock);
 }
