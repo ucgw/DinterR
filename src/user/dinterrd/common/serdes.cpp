@@ -18,7 +18,7 @@ DinterrSerdesData::DinterrSerdesData(const dinterr_data_t *data) {
         memcpy(this->_serdes, (char*)data, sizeof(dinterr_data_t));
 }
 
-DinterrSerdesNetwork::DinterrSerdesNetwork(const ddtp_msg_t *data) {
+DinterrSerdesNetwork::DinterrSerdesNetwork(const ddtp_payload_t *data) {
     /* serialize ddtp_msg_t -> byte array */
     this->_serdes = (char*)malloc(sizeof(*data));
     if (this->_serdes)
@@ -42,9 +42,9 @@ DinterrSerdesNetwork::DinterrSerdesNetwork(const char *data) {
      * a ddtp_msg_t has a void* member which may in fact
      * be variably sized in contrast to a dinterr_data_t
      */
-    this->_serdes = (ddtp_msg_t*)malloc(sizeof(*data));
+    this->_serdes = (ddtp_payload_t*)malloc(sizeof(*data));
     if (this->_serdes)
-        memcpy(this->_serdes, (ddtp_msg_t*)data, sizeof(*data));
+        memcpy(this->_serdes, (ddtp_payload_t*)data, sizeof(*data));
 }
 
 DinterrSerdes::~DinterrSerdes() {

@@ -30,7 +30,7 @@ class DinterrSerdesData:public DinterrSerdes {
 
 class DinterrSerdesNetwork:public DinterrSerdes {
     public:
-        DinterrSerdesNetwork(const ddtp_msg_t*); // serialize mode
+        DinterrSerdesNetwork(const ddtp_payload_t*); // serialize mode
         DinterrSerdesNetwork(const char*); // deserialize mode
 };
 

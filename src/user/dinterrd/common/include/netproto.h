@@ -76,16 +76,16 @@ struct ddtp_client {
  */
 #define LOAD_REQUEST    0x1
 #define LOAD_FAIL       0x2
-#define LOAD_SUCCEED    0x3
-#define DATA_SEND       0x4
-#define DATA_RETRY      0x5
-#define DATA_CONFIRM    0x6
-#define UNLOAD_REQUEST  0x7
-#define UNLOAD_COMPLETE 0x8
+#define LOAD_SUCCEED    0x4
+#define DATA_SEND       0x8
+#define DATA_RETRY      0xF
+#define DATA_CONFIRM    0x20
+#define UNLOAD_REQUEST  0x40
+#define UNLOAD_COMPLETE 0x80
 
-typedef struct ddtp_msg {
+typedef struct ddtp_payload {
     short type;
-    void* msg;
-} ddtp_msg_t;
+    void* payload;
+} ddtp_payload_t;
 
 #endif  // _NETPROTO_H_
