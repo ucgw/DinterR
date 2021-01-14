@@ -141,3 +141,44 @@ int dinterrd_accept(dinterr_sock_t* dsock) {
     }
     return(SOCKIO_FAIL);
 }
+
+int dinterr_sock_read(dinterr_sock_t* dsock, char* buffer) {
+    int sockerr = 0;
+    ssize_t readin = 1;
+    size_t bsize = sizeof(char) * SOCKIO_BUFFSIZE;
+    int sockfd = NOSOCKFD;
+
+    sockfd = dinterr_get_sockfd(dsock);
+
+    if (sockfd == NOSOCKFD)
+        return(SOCKIO_FAIL);
+
+    memset(buffer, '\0', bsize);
+
+try_sockread_again:
+    readin = read(sockfd, buffer, bsize);
+    sockerr = errno;
+
+    if (readin == -1) {
+        if (sockerr == EINTR)
+            goto try_sockread_again;
+
+        perror("dinterr_sock_read: read()");
+        return(SOCKIO_FAIL);
+    }
+
+    if (readin < bsize)
+        return(SOCKIO_DONE);
+    return(SOCKIO_MOREDATA);
+}
+
+int dinterr_get_sockfd(dinterr_sock_t* dsock) {
+    int type = NOSOCKFD;
+    type = dsock->type;
+
+    if (type == DINTERR_SERVER)
+        return dsock->srv_sockfd;
+    else if (type == DINTERR_CLIENT)
+        return dsock->cli_sockfd;
+    return NOSOCKFD;
+}

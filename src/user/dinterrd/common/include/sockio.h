@@ -2,6 +2,8 @@
 #define _SOCKIO_H_
 
 #include <cstddef>
+#include <string>
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -43,6 +45,7 @@ typedef struct dinterr_sock {
 // for either server or client
 void dinterr_sock_init(dinterr_sock_t*, int, const char* ipaddr=NULL);
 int dinterr_sock_create(dinterr_sock_t*, uint16_t);
+int dinterr_get_sockfd(dinterr_sock_t*);
 
 // functions for server and client to accept and connect
 // for service
@@ -52,7 +55,7 @@ int dinterrd_connect(dinterr_sock_t*); // client
 void dinterrd_run_server(dinterr_sock_t*, uint16_t, const char* ipaddr=NULL);
 
 // basic data read / write over sockets
-int dinterr_sock_read(dinterr_sock_t*, char*, size_t);
+int dinterr_sock_read(dinterr_sock_t*, char*);
 int dinterr_sock_write(dinterr_sock_t*, char*);
 
 #endif // _SOCKIO_H_
