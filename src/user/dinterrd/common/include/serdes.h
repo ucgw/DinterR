@@ -9,7 +9,7 @@
  *
  * (i.e. whether object serializes or deserializes)
  * serialize => input: dinterr_data_t*
- * serialize => input: ddtp_msg_t*
+ * serialize => input: ddtp_payload_t*
  * deserialize => input: char*
  */
 
