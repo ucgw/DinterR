@@ -5,6 +5,17 @@
 #include "server.h"
 #include "sig.h"
 
+void dinterrd_run_server(dinterr_sock_t* dsock, uint16_t port, const char* ipaddr) {
+    if (ipaddr == NULL)
+        dinterr_sock_init(dsock, DINTERR_SERVER);
+    else
+        dinterr_sock_init(dsock, DINTERR_SERVER, ipaddr);
+
+    if (dinterr_sock_create(dsock, port) == SOCKIO_SUCCESS)
+        dinterrd_accept(dsock);
+}
+
+
 void dinterr_sock_init(dinterr_sock_t* dsock, int type, const char* ipaddr) {
     memset(dsock, 0, sizeof(*dsock));
     dsock->type = type;

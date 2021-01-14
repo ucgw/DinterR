@@ -49,6 +49,8 @@ int dinterr_sock_create(dinterr_sock_t*, uint16_t);
 int dinterrd_accept(dinterr_sock_t*);  // server
 int dinterrd_connect(dinterr_sock_t*); // client
 
+void dinterrd_run_server(dinterr_sock_t*, uint16_t, const char* ipaddr=NULL);
+
 // basic data read / write over sockets
 int _sock_read(dinterr_sock_t*, char*, size_t);
 int _sock_write(dinterr_sock_t*, char*);
