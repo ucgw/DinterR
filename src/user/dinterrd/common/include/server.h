@@ -5,7 +5,8 @@
 #include <iostream>
 
 #include "netproto.h"
+#include "sockio.h"
 
-int dinterrd_processor(char*, uint16_t);
+int dinterrd_processor(dinterr_sock_t*, char*, uint16_t);
 
 #endif // _SERVER_H_
