@@ -6,6 +6,7 @@
 
 #include "netproto.h"
 #include "sockio.h"
+#include "serdes.h"
 
 int dinterrd_processor(dinterr_sock_t*, char*, uint16_t);
 
