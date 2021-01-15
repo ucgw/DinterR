@@ -35,11 +35,11 @@ DinterrSerdesData::DinterrSerdesData(const char *data) {
 }
 
 DinterrSerdesNetwork::DinterrSerdesNetwork(const char *data) {
-    /* deserialize byte array -> ddtp_msg_t */
+    /* deserialize byte array -> ddtp_payload_t */
     size_t field_size;
 
     /* we malloc sizeof() dereferenced input data because
-     * a ddtp_msg_t has a void* member which may in fact
+     * a ddtp_payload_t has a void* member which may in fact
      * be variably sized in contrast to a dinterr_data_t
      */
     this->_serdes = (ddtp_payload_t*)malloc(sizeof(*data));
@@ -55,3 +55,13 @@ DinterrSerdes::~DinterrSerdes() {
 void* DinterrSerdes::get_data(void) {
     return this->_serdes;
 }
+
+DinterrSerdesNetwork* ddtp_serdes_create(const char* data) {
+    return(new DinterrSerdesNetwork(data));
+}
+
+void ddtp_serdes_destroy(DinterrSerdesNetwork* serdes) {
+    if (serdes)
+        delete(serdes);
+}
+

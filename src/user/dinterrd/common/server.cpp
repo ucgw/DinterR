@@ -15,11 +15,18 @@ int dinterrd_processor(dinterr_sock_t* dsock, char* cli_addr, uint16_t src_port)
          * the terminal state in the sml::sm object
          */
         while (sm.is(sml::X) == false) {
-           /* wait for something to come over the wire */
-           do {
-               readstat = dinterr_sock_read(dsock, buffer);
-               data_stream.append((const char*) buffer, bsize);
-           } while (readstat != SOCKIO_DONE);
+           /* wait for something to come over the wire
+            * and consume the stream ultimately as a
+            * char array via the data_stream object.
+            * this in turn will be deserialized into
+            * a ddtp_payload_t object
+            */
+            dinterr_readwait(dsock, buffer, &data_stream);
+            DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
+            ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
+            printf("payload type: %02X\n", pl->type);
+            ddtp_serdes_destroy(sd);
+            break;
         }
 
         free(buffer);
