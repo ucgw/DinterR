@@ -24,7 +24,7 @@ int dinterrd_processor(dinterr_sock_t* dsock, char* cli_addr, uint16_t src_port)
             dinterr_readwait(dsock, buffer, &data_stream);
             DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
             ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
-            printf("payload type: %02X\n", pl->type);
+            printf("payload type: %d (0x%02X)\n", pl->type, pl->type);
             ddtp_serdes_destroy(sd);
             break;
         }
