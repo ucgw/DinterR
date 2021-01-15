@@ -34,4 +34,7 @@ class DinterrSerdesNetwork:public DinterrSerdes {
         DinterrSerdesNetwork(const char*); // deserialize mode
 };
 
+DinterrSerdesNetwork* ddtp_serdes_create(const char*);
+void ddtp_serdes_destroy(DinterrSerdesNetwork*);
+
 #endif // _SERDES_H_
