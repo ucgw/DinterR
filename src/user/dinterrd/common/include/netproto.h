@@ -78,21 +78,21 @@ struct ddtp_client {
 #define LOAD_FAIL       0x2
 #define LOAD_SUCCEED    0x4
 #define DATA_SEND       0x8
-#define DATA_RETRY      0xF
+#define DATA_RETRY      0x10
 #define DATA_CONFIRM    0x20
 #define UNLOAD_REQUEST  0x40
 #define UNLOAD_COMPLETE 0x80
 
-static inline bool is_payload_type(short type, short test) {
-    if (test == LOAD_REQUEST || \
-        test == LOAD_FAIL || \
-        test == LOAD_SUCCEED || \
-        test == DATA_SEND || \
-        test == DATA_RETRY || \
-        test == DATA_CONFIRM || \
-        test == UNLOAD_REQUEST || \
-        test == UNLOAD_COMPLETE)
-        return (type & test);
+static inline bool validate_ddtp_type(short type) {
+    if (type == LOAD_REQUEST || \
+        type == LOAD_FAIL || \
+        type == LOAD_SUCCEED || \
+        type == DATA_SEND || \
+        type == DATA_RETRY || \
+        type == DATA_CONFIRM || \
+        type == UNLOAD_REQUEST || \
+        type == UNLOAD_COMPLETE)
+        return true;
     return false;
 }
 
