@@ -5,6 +5,17 @@
 #include "server.h"
 #include "sig.h"
 
+void dinterr_readwait(dinterr_sock_t* dsock, char* buffer, std::string* stream) {
+    int readstat = SOCKIO_SUCCESS;
+    size_t bsize = sizeof(char) * SOCKIO_BUFFSIZE;
+    *stream = "";
+
+    do {
+        readstat = dinterr_sock_read(dsock, buffer);
+        stream->append((const char*) buffer, bsize);
+    } while (readstat != SOCKIO_DONE);
+}
+        
 void dinterrd_run_server(dinterr_sock_t* dsock, uint16_t port, const char* ipaddr) {
     if (ipaddr == NULL)
         dinterr_sock_init(dsock, DINTERR_SERVER);
@@ -15,7 +26,6 @@ void dinterrd_run_server(dinterr_sock_t* dsock, uint16_t port, const char* ipadd
         dinterrd_accept(dsock);
 }
 
-
 void dinterr_sock_init(dinterr_sock_t* dsock, int type, const char* ipaddr) {
     memset(dsock, 0, sizeof(*dsock));
     dsock->type = type;
@@ -25,6 +35,7 @@ void dinterr_sock_init(dinterr_sock_t* dsock, int type, const char* ipaddr) {
     else if (type == DINTERR_CLIENT)
         dsock->cli_sockfd = NOSOCKFD;
 
+    dsock->conn_sockfd = NOSOCKFD;
     dsock->ipaddr = ipaddr;
     dsock->addrlen = sizeof(dsock->address);
     dsock->verbose = true;
@@ -117,6 +128,8 @@ int dinterrd_accept(dinterr_sock_t* dsock) {
                 return(SOCKIO_FAIL);
             }
 
+            dsock->conn_sockfd = connsock;
+
             src_port = htons(dsock->address.sin_port);
             cli_addr = inet_ntoa(dsock->address.sin_addr);
 
@@ -148,7 +161,7 @@ int dinterr_sock_read(dinterr_sock_t* dsock, char* buffer) {
     size_t bsize = sizeof(char) * SOCKIO_BUFFSIZE;
     int sockfd = NOSOCKFD;
 
-    sockfd = dinterr_get_sockfd(dsock);
+    sockfd = dsock->conn_sockfd;
 
     if (sockfd == NOSOCKFD)
         return(SOCKIO_FAIL);
@@ -167,7 +180,7 @@ try_sockread_again:
         return(SOCKIO_FAIL);
     }
 
-    if (readin < bsize)
+    if (readin <= bsize)
         return(SOCKIO_DONE);
     return(SOCKIO_MOREDATA);
 }

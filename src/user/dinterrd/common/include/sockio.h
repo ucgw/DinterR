@@ -34,6 +34,7 @@ typedef struct dinterr_sock {
         int srv_sockfd;
         int cli_sockfd;
     };
+    int conn_sockfd;
     int addrlen;
     struct sockaddr_in address;
     const char* ipaddr;
@@ -58,4 +59,5 @@ void dinterrd_run_server(dinterr_sock_t*, uint16_t, const char* ipaddr=NULL);
 int dinterr_sock_read(dinterr_sock_t*, char*);
 int dinterr_sock_write(dinterr_sock_t*, char*);
 
+void dinterr_readwait(dinterr_sock_t*, char*, std::string*);
 #endif // _SOCKIO_H_
