@@ -29,7 +29,7 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
             dinterr_readwait(dsock, buffer, &data_stream);
             DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
             ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
-            bool valid_type = ddtp_server_validate_type(pl->type, sm);
+            bool valid_type = ddtp_server_validate_incoming_type(pl->type, sm);
 
             if (dsock->verbose == true)
                 printf("payload type: %d (0x%02X) validate: %d\n",
@@ -84,7 +84,7 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
 }
 
 
-bool ddtp_server_validate_type(short type, sml::sm<ddtp_server>* sm) {
+bool ddtp_server_validate_incoming_type(short type, sml::sm<ddtp_server>* sm) {
     bool validated = false;
 
     using namespace sml;
@@ -106,8 +106,16 @@ bool ddtp_server_validate_type(short type, sml::sm<ddtp_server>* sm) {
                 validated = true;
             break;
         default:
+            // transition to terminal state
+            // simply because of invalid type.
             sm->process_event(terminate{});
     }
+
+    // transition to terminal state
+    // if we haven't positively validated type
+    // relative to expected state
+    if (validated == false)
+        sm->process_event(terminate{});
 
     return(validated);
 }
