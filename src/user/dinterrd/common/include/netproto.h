@@ -83,19 +83,6 @@ struct ddtp_client {
 #define UNLOAD_REQUEST  0x40
 #define UNLOAD_COMPLETE 0x80
 
-static inline bool validate_ddtp_type(short type) {
-    if (type == LOAD_REQUEST || \
-        type == LOAD_FAIL || \
-        type == LOAD_SUCCEED || \
-        type == DATA_SEND || \
-        type == DATA_RETRY || \
-        type == DATA_CONFIRM || \
-        type == UNLOAD_REQUEST || \
-        type == UNLOAD_COMPLETE)
-        return true;
-    return false;
-}
-
 typedef struct ddtp_payload {
     short type;
     void* payload;
