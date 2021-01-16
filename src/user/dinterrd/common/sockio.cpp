@@ -142,7 +142,7 @@ int dinterrd_accept(dinterr_sock_t* dsock) {
              * for now, only one client
              * at a time can be handled
              */
-            dinterrd_processor(dsock, cli_addr, src_port);
+            dinterrd_processor_sm_wrapper(dsock, cli_addr, src_port);
 
             close(connsock);
             if (dsock->verbose == true)
