@@ -8,8 +8,13 @@ fi
 
 port=$1
 
-echo -n -e "\x01\x00\xFF" | nc localhost $port
-echo -n -e "\x10\x00\x00" | nc localhost $port
-echo -n -e "\x20\x10\x30" | nc localhost $port
-echo -n -e "\x40\x00\xFE" | nc localhost $port
-echo -n -e "\xa1\x00\xFE" | nc localhost $port
+# 0x01 should be the only type that is initially
+# allowed on a client session
+# the remaining ones should fail validation and the
+# the dinterrd service should tranistion to the terminal
+# state.
+#echo -n -e "\x01\x10\x20\x40" | nc localhost $port
+echo -n -e "\x10" | nc localhost $port
+echo -n -e "\x20" | nc localhost $port
+echo -n -e "\x40" | nc localhost $port
+echo -n -e "\xa1" | nc localhost $port
