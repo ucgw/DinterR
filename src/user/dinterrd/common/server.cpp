@@ -36,7 +36,7 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
                        pl->type, pl->type, valid_type);
 
             if (valid_type == true)
-                ddtp_server_process_incoming(pl, sm, dsock->verbose);
+                ddtp_server_process_incoming_payload(pl, sm, dsock->verbose);
 
             ddtp_serdes_destroy(sd);
 
@@ -83,7 +83,6 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
     return(0);
 }
 
-
 bool ddtp_server_validate_incoming_type(short type, sml::sm<ddtp_server>* sm) {
     bool validated = false;
 
@@ -129,7 +128,7 @@ bool ddtp_server_validate_incoming_type(short type, sml::sm<ddtp_server>* sm) {
  * - DATA_CONFIRM
  * - UNLOAD_REQUEST
  */
-void ddtp_server_process_incoming(ddtp_payload_t* pl, sml::sm<ddtp_server>* sm, bool verbose) {
+void ddtp_server_process_incoming_payload(ddtp_payload_t* pl, sml::sm<ddtp_server>* sm, bool verbose) {
     using namespace sml;
     switch(pl->type) {
         case LOAD_REQUEST:
