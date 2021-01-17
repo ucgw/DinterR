@@ -32,7 +32,7 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
             bool valid_type = ddtp_server_validate_incoming_type(pl->type, sm);
 
             if (dsock->verbose == true)
-                printf("payload type: %d (0x%02X) validate: %d\n",
+                printf("payload type: %d (0x%02X) validated: %d\n",
                        pl->type, pl->type, valid_type);
 
             if (valid_type == true)
@@ -52,7 +52,7 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
             std::cerr << "curr_state: load_wait? (" << \
                 sm->is("load_wait"_s) << ")" << std::endl;
 
-            //break;   // TESTING: understood why based on netcat
+            break;   // TESTING: understood why based on netcat
                      // calls why this is needed for now. each
                      // nc all is a new client session which
                      // implies the sm object is always starting
@@ -83,6 +83,14 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
     return(0);
 }
 
+/*
+ * the valid incoming payload types for the server are as follows:
+ * - LOAD_REQUEST
+ * - DATA_RETRY
+ * - DATA_CONFIRM
+ * - UNLOAD_REQUEST
+ */
+
 bool ddtp_server_validate_incoming_type(short type, sml::sm<ddtp_server>* sm) {
     bool validated = false;
 
@@ -105,9 +113,9 @@ bool ddtp_server_validate_incoming_type(short type, sml::sm<ddtp_server>* sm) {
                 validated = true;
             break;
         default:
-            // transition to terminal state
-            // simply because of invalid type.
-            sm->process_event(terminate{});
+            // do nothing, validated is false
+            // by default
+            ;
     }
 
     // transition to terminal state
@@ -119,15 +127,6 @@ bool ddtp_server_validate_incoming_type(short type, sml::sm<ddtp_server>* sm) {
     return(validated);
 }
 
-/*
- * ddtp_server_process_incoming:
- *
- * the valid incoming payload types for the server are as follows:
- * - LOAD_REQUEST
- * - DATA_RETRY
- * - DATA_CONFIRM
- * - UNLOAD_REQUEST
- */
 void ddtp_server_process_incoming_payload(ddtp_payload_t* pl, sml::sm<ddtp_server>* sm, bool verbose) {
     using namespace sml;
     switch(pl->type) {
@@ -171,4 +170,32 @@ void ddtp_server_process_incoming_payload(ddtp_payload_t* pl, sml::sm<ddtp_serve
             std::cerr << "*- Error: INVALID PAYLOAD -*" << std::endl;
             break;
     }
+}
+
+/*
+ * Reference: https://man7.org/linux/man-pages/man7/inotify.7.html
+ */
+int ddtp_server_load_file_inotify(ddtp_payload_t* pl) {
+    int fd;
+    int* wd;
+
+    fd = inotify_init1(IN_NONBLOCK);
+    if (fd == -1) {
+        perror("ddtp_server_load_file_inotify: inotify_init1()");
+        return DDTP_LOAD_ERROR1;
+    }
+
+    wd = (int*) calloc(1, sizeof(int));
+    if (wd == NULL) {
+        perror("ddtp_server_load_file_inotify: calloc()");
+        return DDTP_LOAD_ERROR2;
+    }
+
+    wd[0] = inotify_add_watch(fd, (const char*) pl->payload, IN_ALL_EVENTS);
+    if (wd[0] == -1) {
+        perror("ddtp_server_load_file_inotify: inotify_add_watch()");
+        return DDTP_LOAD_ERROR3;
+    }
+
+    return(0);
 }
