@@ -11,9 +11,8 @@
 #include "netproto.h"
 #include "maps.h"
 
-#define DDTP_DATA_READY_INIT -1
-#define DDTP_DATA_READY_SUCCESS 0
-#define DDTP_DATA_READY_FAILURE 1
+#define DDTP_DATA_NOTREADY 0
+#define DDTP_DATA_READY 1
 
 // this will be the reference count
 // for number of client sessions
@@ -23,32 +22,46 @@
 // future.
 static short ddtp_ref_count;
 
+// this will be the toggle for determining
+// when data is ready to send to client.
+static short ddtp_data_ready;
+
 // locking primitives w/ struct for locks
 // and values to lock on for update
 typedef struct ddtp_locks {
     pthread_mutex_t data_ready_lock;
     pthread_mutex_t ref_count_lock;
-    short ddtp_data_ready;
+    pthread_mutex_t data_access_lock;
+    pthread_cond_t ref_count_cond;
+    pthread_cond_t data_ready_cond;
 } ddtp_locks_t;
 
+void ddtp_locks_init(ddtp_locks_t*);
+int ddtp_lock(pthread_mutex_t*);
+int ddtp_unlock(pthread_mutex_t*);
+
+// locking derivatives for synchronizing
+// when data is available to send to client
+// between main thread and inotify handler thread.
+//
+// main thread: ddtp_block_until_data_ready()
+// inotify handler thread: ddtp_signal_data_ready()
+int ddtp_block_until_data_ready(ddtp_locks_t*);
+int ddtp_signal_data_ready(ddtp_locks_t*);
 
 // this will be the primary struct
 // for input to thread
 typedef struct ddtp_thread_data {
     dinterr_sock_t* sockfd;
     ddtp_payload_t* payload;
-    ddtp_locks_t locks;
+    ddtp_locks_t* locks;
     dinterr_crc32_data_table_t* data;
     int fd;
     int* wd;
 } ddtp_thread_data_t;
 
-void ddtp_locks_init(ddtp_locks_t*);
-int ddtp_lock(pthread_mutex_t*);
-int ddtp_unlock(pthread_mutex_t*);
-
 // Thread: input will be ddtp_thread_data_t*
 void* _server_load_file_and_watch(void*);
-int __handle_inotify_events(int, int*, dinterr_crc32_data_table_t*, pthread_mutex_t*);
+int __handle_inotify_events(int, int*, dinterr_crc32_data_table_t*, ddtp_locks_t*);
 
 #endif // _THREAD_H_

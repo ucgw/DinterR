@@ -5,8 +5,13 @@
 void ddtp_locks_init(ddtp_locks_t* dlock) {
     dlock->data_ready_lock = PTHREAD_MUTEX_INITIALIZER;
     dlock->ref_count_lock = PTHREAD_MUTEX_INITIALIZER;
-    dlock->ddtp_data_ready = DDTP_DATA_READY_INIT;
+    dlock->data_access_lock = PTHREAD_MUTEX_INITIALIZER;
+
+    dlock->data_ready_cond = PTHREAD_COND_INITIALIZER;
+    dlock->ref_count_cond = PTHREAD_COND_INITIALIZER;
+
     ddtp_ref_count = 0;
+    ddtp_data_ready = DDTP_DATA_NOTREADY;
 }
 
 int ddtp_lock(pthread_mutex_t* ltype) {
@@ -29,6 +34,31 @@ int ddtp_unlock(pthread_mutex_t* ltype) {
     return(-1);
 }
 
+int ddtp_block_until_data_ready(ddtp_locks_t* dlock) {
+    int lock_retval = -1;
+
+    lock_retval = ddtp_lock(&dlock->data_ready_lock);
+    if (lock_retval == 0) {
+        while (ddtp_data_ready == DDTP_DATA_NOTREADY)
+            pthread_cond_wait(&dlock->data_ready_cond, &dlock->data_ready_lock);
+        ddtp_data_ready = DDTP_DATA_NOTREADY;
+        lock_retval = ddtp_unlock(&dlock->data_ready_lock);
+    }
+    return(lock_retval);
+}
+
+int ddtp_signal_data_ready(ddtp_locks_t* dlock) {
+    int lock_retval = -1;
+
+    lock_retval = ddtp_lock(&dlock->data_ready_lock);
+    if (lock_retval == 0) {
+        ddtp_data_ready = DDTP_DATA_READY;
+        lock_retval = ddtp_unlock(&dlock->data_ready_lock);
+        pthread_cond_signal(&dlock->data_ready_cond);
+    }
+    return(lock_retval);
+}
+    
 // Thread(s) and dependent functions
 
 /*
@@ -59,7 +89,7 @@ void* _server_inotify_file_watch(void* data) {
 
         if (poll_num > 0) {
             if (fds[0].revents & POLLIN) {
-                if (__handle_inotify_events(pl_data->fd,pl_data->wd, pl_data->data, &pl_data->locks.data_ready_lock) != 0) {
+                if (__handle_inotify_events(pl_data->fd,pl_data->wd, pl_data->data, pl_data->locks) != 0) {
                     poll_err = DDTP_EVENT_ERROR1;
                     pthread_exit(&poll_err);
                 }
@@ -69,7 +99,7 @@ void* _server_inotify_file_watch(void* data) {
     pthread_exit(NULL);
 }
 
-int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, pthread_mutex_t* data_lock) {
+int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, ddtp_locks_t* dlocks) {
     char buf[4096]
     __attribute__ ((aligned(__alignof__(struct inotify_event))));
     const struct inotify_event *event;
@@ -118,14 +148,17 @@ int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, pth
             DinterrSerdesData* serdes = drecord.get_serdes();
             uLong crc32_key = drecord.get_crc();
 
-            ddtp_lock(data_lock);
+            ddtp_lock(&dlocks->data_access_lock);
+
             dt->insert(
               crc_data_pair_t(
                 crc32_key,
                 ddtp_serdes_create((const char*)serdes->get_data())
               )
             );
-            ddtp_unlock(data_lock);
+
+            ddtp_signal_data_ready(dlocks);
+            ddtp_unlock(&dlocks->data_access_lock);
 
             delete serdes;
         }
