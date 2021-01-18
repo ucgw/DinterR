@@ -26,6 +26,16 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
     size_t bsize = sizeof(char) * SOCKIO_BUFFSIZE;
     char* buffer = (char*) malloc(bsize);
     std::string data_stream = "";
+    ddtp_thread_data_t tdat;
+    ddtp_locks_t tlocks;
+    dinterr_crc32_data_table_t all_data;
+
+    ddtp_locks_init(&tlocks);
+
+    tdat.sockfd = dsock;
+    tdat.payload = NULL;
+    tdat.locks = &tlocks;
+    tdat.data = &all_data;
 
     if (buffer != NULL) {
         /* while we haven't hit a terminal state
@@ -40,6 +50,7 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
             * a ddtp_payload_t object
             */
             dinterr_readwait(dsock, buffer, bsize, &data_stream);
+            std::cerr << "**> " << data_stream << " <**" << std::endl;
             DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
             ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
             bool valid_type = ddtp_server_validate_incoming_type(pl->type, sm);
@@ -50,8 +61,11 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
                 _ddtp_state_verbot(sm);
             }
 
-            if (valid_type == true)
-                ddtp_server_process_incoming_payload(pl, sm, dsock->verbose);
+            if (valid_type == true) {
+                tdat.payload = pl;
+                std::cerr << "==> " << pl->payload << " <==" << std::endl;
+                ddtp_server_process_incoming_payload(&tdat, sm);
+            }
 
             ddtp_serdes_destroy(sd);
 
@@ -112,20 +126,18 @@ bool ddtp_server_validate_incoming_type(short type, sml::sm<ddtp_server>* sm) {
     return(validated);
 }
 
-void ddtp_server_process_incoming_payload(ddtp_payload_t* pl, sml::sm<ddtp_server>* sm, bool verbose) {
+void ddtp_server_process_incoming_payload(ddtp_thread_data_t* tdat, sml::sm<ddtp_server>* sm) {
     using namespace sml;
-    switch(pl->type) {
+    switch(tdat->payload->type) {
         case LOAD_REQUEST:
             std::cerr << "LOAD_REQUEST payload" << std::endl;
             // trigger load_request event to transition to
             // data_ready state (for now assume load_success{} event)
             /* try to load file for inotify from payload */
-            sm->process_event(load_success{});
-
-            /* now send inotify data to client, then
-             * transition via data_send event to data_pend state
-             */
-            sm->process_event(data_send{});
+            if (ddtp_server_load_file_inotify(tdat) == 0)
+                sm->process_event(load_success{});
+            else
+                sm->process_event(load_fail{});
             break;
         case DATA_RETRY:
             std::cerr << "LOAD_RETRY payload" << std::endl;
@@ -185,7 +197,7 @@ int ddtp_server_load_file_inotify(ddtp_thread_data_t* tdat) {
         }
     }
     else {
-        std::cerr << "ddtp_server_load_file_inotify: payload field is NULL" << std::endl;
+        std::cerr << "ddtp_server_load_file_inotify: payload field is empty" << std::endl;
         return DDTP_LOAD_ERROR4;
     }
 

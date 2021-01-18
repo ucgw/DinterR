@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <cstdio>
+#include <iostream>
 
 #include "serdes.h"
 
@@ -36,15 +37,17 @@ DinterrSerdesData::DinterrSerdesData(const char *data) {
 
 DinterrSerdesNetwork::DinterrSerdesNetwork(const char *data) {
     /* deserialize byte array -> ddtp_payload_t */
-    size_t field_size;
+    size_t dsize = strlen(data) * sizeof(char);
+
+    std::cerr << "-=-= " << dsize << std::endl;
 
     /* we malloc sizeof() dereferenced input data because
      * a ddtp_payload_t has a void* member which may in fact
      * be variably sized in contrast to a dinterr_data_t
      */
-    this->_serdes = (ddtp_payload_t*)malloc(sizeof(*data));
+    this->_serdes = (ddtp_payload_t*)malloc(dsize);
     if (this->_serdes)
-        memcpy(this->_serdes, (ddtp_payload_t*)data, sizeof(*data));
+        memcpy(this->_serdes, (ddtp_payload_t*)data, dsize);
 }
 
 DinterrSerdes::~DinterrSerdes() {

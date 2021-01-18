@@ -1,3 +1,4 @@
+#include <iostream>
 #include "thread.h"
 
 #include "dataproto.cpp"
@@ -185,6 +186,8 @@ int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, ddt
             uLong crc32_key = drecord.get_crc();
 
             ddtp_lock(&dlocks->data_access_lock);
+
+            std::cerr << "DATA CRC32: " << crc32_key << std::endl;
 
             dt->insert(
               crc_data_pair_t(
