@@ -8,15 +8,17 @@ int dinterrd_processor_sm_wrapper(dinterr_sock_t* dsock, char* cli_addr, uint16_
 }
 
 // the ddtp state verbose bot
-void _ddtp_state_verbot(sml::sm<ddtp_server>* sm) {
+void _ddtp_state_verbot(sml::sm<ddtp_server>* sm, bool verbose) {
     using namespace sml;
-    std::cerr << "CURR_STATE: terminal:" << sm->is(X) << \
-          "  " << "data_pend:" << sm->is("data_pend"_s) << \
-          "  " << "data_ready:" << sm->is("data_ready"_s) << \
-          "  " << "data_purge:" << sm->is("data_purge"_s) << \
-          "  " << "load_wait:" << sm->is("load_wait"_s) << \
-          "  " << "unload_pend:" << sm->is("unload_pend"_s) << \
-          std::endl;
+    if (verbose == true) {
+        std::cerr << "CURR_STATE: terminal:" << sm->is(X) << \
+              "  " << "data_pend:" << sm->is("data_pend"_s) << \
+              "  " << "data_ready:" << sm->is("data_ready"_s) << \
+              "  " << "data_purge:" << sm->is("data_purge"_s) << \
+              "  " << "load_wait:" << sm->is("load_wait"_s) << \
+              "  " << "unload_pend:" << sm->is("unload_pend"_s) << \
+        std::endl;
+    }
 }
 
 int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* cli_addr, uint16_t src_port) {
@@ -58,12 +60,13 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
             if (dsock->verbose == true) {
                 printf("payload type: %d (0x%02X) validated: %d\n",
                        pl->type, pl->type, valid_type);
-                _ddtp_state_verbot(sm);
+                _ddtp_state_verbot(sm, true);
             }
 
             if (valid_type == true) {
                 tdat.payload = pl;
-                std::cerr << "==> " << pl->payload << " <==" << std::endl;
+                std::cerr << "==> " << ddtpPayloadType[pl->type] << " <==" << std::endl;
+                std::cerr << "==> " << pl->data << " <==" << std::endl;
                 ddtp_server_process_incoming_payload(&tdat, sm);
             }
 
@@ -177,7 +180,7 @@ int ddtp_server_load_file_inotify(ddtp_thread_data_t* tdat) {
     int* wd;
     pthread_t loadtid;
 
-    if (tdat->payload->payload != NULL) {
+    if (tdat->payload->data != NULL) {
         fd = inotify_init1(IN_NONBLOCK);
         if (fd == -1) {
             perror("ddtp_server_load_file_inotify: inotify_init1()");
@@ -190,7 +193,7 @@ int ddtp_server_load_file_inotify(ddtp_thread_data_t* tdat) {
             return DDTP_LOAD_ERROR2;
         }
 
-        wd[0] = inotify_add_watch(fd, (const char*) tdat->payload->payload, IN_ALL_EVENTS);
+        wd[0] = inotify_add_watch(fd, (const char*) tdat->payload->data, IN_ALL_EVENTS);
         if (wd[0] == -1) {
             perror("ddtp_server_load_file_inotify: inotify_add_watch()");
             return DDTP_LOAD_ERROR3;

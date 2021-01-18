@@ -13,6 +13,8 @@
 
 #include <cassert>
 
+#include <zlib.h>
+
 #include "sml.hpp"
 
 namespace sml = boost::sml;
@@ -83,9 +85,14 @@ struct ddtp_client {
 #define UNLOAD_REQUEST  0x40
 #define UNLOAD_COMPLETE 0x80
 
+#define CRC32_DATA "ulong"
+#define FILENAME_DATA "char_array"
+
+#define MAX_DATASIZE 128
+
 typedef struct ddtp_payload {
     short type;
-    void* payload;
+    char data[MAX_DATASIZE];
 } ddtp_payload_t;
 
 #endif  // _NETPROTO_H_

@@ -38,4 +38,11 @@ static dinterr_lookup_table_t ddtpError {
   { DDTP_LOAD_ERROR6, "pthread_create() failure" }
 };
 
+static dinterr_lookup_table_t ddtpPayloadType {
+  { LOAD_REQUEST, FILENAME_DATA },
+  { DATA_RETRY, CRC32_DATA },
+  { DATA_CONFIRM, CRC32_DATA },
+  { UNLOAD_REQUEST, FILENAME_DATA }
+};
+
 #endif // _MAPS_H_
