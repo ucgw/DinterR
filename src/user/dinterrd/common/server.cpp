@@ -1,9 +1,22 @@
 #include "server.h"
 
+
 int dinterrd_processor_sm_wrapper(dinterr_sock_t* dsock, char* cli_addr, uint16_t src_port) {
     using namespace sml;
     sml::sm<ddtp_server> sm;
     return(_dinterrd_processor(dsock, &sm, cli_addr, src_port));
+}
+
+// the ddtp state verbose bot
+void _ddtp_state_verbot(sml::sm<ddtp_server>* sm) {
+    using namespace sml;
+    std::cerr << "CURR_STATE: terminal:" << sm->is(X) << \
+          "  " << "data_pend:" << sm->is("data_pend"_s) << \
+          "  " << "data_ready:" << sm->is("data_ready"_s) << \
+          "  " << "data_purge:" << sm->is("data_purge"_s) << \
+          "  " << "load_wait:" << sm->is("load_wait"_s) << \
+          "  " << "unload_pend:" << sm->is("unload_pend"_s) << \
+          std::endl;
 }
 
 int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* cli_addr, uint16_t src_port) {
@@ -26,31 +39,21 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
             * this in turn will be deserialized into
             * a ddtp_payload_t object
             */
-            dinterr_readwait(dsock, buffer, &data_stream);
+            dinterr_readwait(dsock, buffer, bsize, &data_stream);
             DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
             ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
             bool valid_type = ddtp_server_validate_incoming_type(pl->type, sm);
 
-            if (dsock->verbose == true)
+            if (dsock->verbose == true) {
                 printf("payload type: %d (0x%02X) validated: %d\n",
                        pl->type, pl->type, valid_type);
+                _ddtp_state_verbot(sm);
+            }
 
             if (valid_type == true)
                 ddtp_server_process_incoming_payload(pl, sm, dsock->verbose);
 
             ddtp_serdes_destroy(sd);
-
-            std::cerr << "curr_state: terminal? (" << \
-                sm->is(X) << ")" << std::endl;
-
-            std::cerr << "curr_state: data_pend? (" << \
-                sm->is("data_pend"_s) << ")" << std::endl;
-
-            std::cerr << "curr_state: data_ready? (" << \
-                sm->is("data_ready"_s) << ")" << std::endl;
-
-            std::cerr << "curr_state: load_wait? (" << \
-                sm->is("load_wait"_s) << ")" << std::endl;
 
             break;   // TESTING: understood why based on netcat
                      // calls why this is needed for now. each
@@ -62,24 +65,6 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
         free(buffer);
     }
 
-    /*
-    std::cerr << "event: *INIT*  curr_state: load_wait (" << \
-      sm.is("load_wait"_s) << ")" << std::endl;
-
-    sm.process_event(load_fail{});
-    std::cerr << "event: load_fail  curr_state: load_wait (" << \
-      sm.is("load_wait"_s) << ")" << std::endl;
-
-    sm.process_event(load_success{});
-    std::cerr << "event: load_success  curr_state: data_ready (" << \
-      sm.is("data_ready"_s) << ")" << std::endl;
-
-    sm.process_event(data_send{});
-    std::cerr << "event: data_send  curr_state: data_ready (" << \
-      sm.is("data_ready"_s) << ")" << std::endl;
-    std::cerr << "event: data_send  curr_state: data_pend (" << \
-      sm.is("data_pend"_s) << ")" << std::endl;
-    */
     return(0);
 }
 

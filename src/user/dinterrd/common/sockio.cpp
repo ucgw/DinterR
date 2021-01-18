@@ -5,13 +5,12 @@
 #include "server.h"
 #include "sig.h"
 
-void dinterr_readwait(dinterr_sock_t* dsock, char* buffer, std::string* stream) {
+void dinterr_readwait(dinterr_sock_t* dsock, char* buffer, size_t bsize, std::string* stream) {
     int readstat = SOCKIO_SUCCESS;
-    size_t bsize = sizeof(char) * SOCKIO_BUFFSIZE;
     *stream = "";
 
     do {
-        readstat = dinterr_sock_read(dsock, buffer);
+        readstat = dinterr_sock_read(dsock, buffer, bsize);
         stream->append((const char*) buffer, bsize);
     } while (readstat != SOCKIO_DONE);
 }
@@ -155,10 +154,9 @@ int dinterrd_accept(dinterr_sock_t* dsock) {
     return(SOCKIO_FAIL);
 }
 
-int dinterr_sock_read(dinterr_sock_t* dsock, char* buffer) {
+int dinterr_sock_read(dinterr_sock_t* dsock, char* buffer, size_t bsize) {
     int sockerr = 0;
     ssize_t readin = 1;
-    size_t bsize = sizeof(char) * SOCKIO_BUFFSIZE;
     int sockfd = NOSOCKFD;
 
     sockfd = dsock->conn_sockfd;
@@ -180,7 +178,7 @@ try_sockread_again:
         return(SOCKIO_FAIL);
     }
 
-    if (readin <= bsize)
+    if (readin < bsize)
         return(SOCKIO_DONE);
     return(SOCKIO_MOREDATA);
 }

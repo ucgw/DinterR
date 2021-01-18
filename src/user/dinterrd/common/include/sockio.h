@@ -56,8 +56,8 @@ int dinterrd_connect(dinterr_sock_t*); // client
 void dinterrd_run_server(dinterr_sock_t*, uint16_t, const char* ipaddr=NULL);
 
 // basic data read / write over sockets
-int dinterr_sock_read(dinterr_sock_t*, char*);
+int dinterr_sock_read(dinterr_sock_t*, char*, size_t);
 int dinterr_sock_write(dinterr_sock_t*, char*);
 
-void dinterr_readwait(dinterr_sock_t*, char*, std::string*);
+void dinterr_readwait(dinterr_sock_t*, char*, size_t, std::string*);
 #endif // _SOCKIO_H_
