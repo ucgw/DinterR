@@ -14,6 +14,9 @@
 #define DDTP_POLL_ERROR1  0x4
 #define DDTP_POLL_ERROR2  0x5
 #define DDTP_EVENT_ERROR1 0x6
+#define DDTP_LOAD_ERROR4 0x7
+#define DDTP_LOAD_ERROR5 0x8
+#define DDTP_LOAD_ERROR6 0x9
 
 #define CRC32_PURGE true
 #define CRC32_KEEP false
@@ -29,7 +32,10 @@ static dinterr_lookup_table_t ddtpError {
   { DDTP_LOAD_ERROR3, "inotify_add_watch() failure" },
   { DDTP_POLL_ERROR1, "poll() failure" },
   { DDTP_POLL_ERROR2, "read() failure" },
-  { DDTP_EVENT_ERROR1, "inotify event handling error" }
+  { DDTP_EVENT_ERROR1, "inotify event handling error" },
+  { DDTP_LOAD_ERROR4, "payload on load is NULL" },
+  { DDTP_LOAD_ERROR5, "references are already at maximum" },
+  { DDTP_LOAD_ERROR6, "pthread_create() failure" }
 };
 
 #endif // _MAPS_H_

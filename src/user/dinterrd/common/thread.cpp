@@ -8,7 +8,6 @@ void ddtp_locks_init(ddtp_locks_t* dlock) {
     dlock->data_access_lock = PTHREAD_MUTEX_INITIALIZER;
 
     dlock->data_ready_cond = PTHREAD_COND_INITIALIZER;
-    dlock->ref_count_cond = PTHREAD_COND_INITIALIZER;
 
     ddtp_ref_count = 0;
     ddtp_data_ready = DDTP_DATA_NOTREADY;
@@ -58,6 +57,40 @@ int ddtp_signal_data_ready(ddtp_locks_t* dlock) {
     }
     return(lock_retval);
 }
+
+int ddtp_increment_ref_count(ddtp_locks_t* dlock) {
+    int lock_retval = -1;
+
+    lock_retval = ddtp_lock(&dlock->ref_count_lock);
+    if (lock_retval == 0) {
+        ddtp_ref_count += 1;
+        lock_retval = ddtp_unlock(&dlock->ref_count_lock);
+    }
+    return(lock_retval);
+}
+
+int ddtp_decrement_ref_count(ddtp_locks_t* dlock) {
+    int lock_retval = -1;
+
+    lock_retval = ddtp_lock(&dlock->ref_count_lock);
+    if (lock_retval == 0) {
+        ddtp_ref_count = ddtp_ref_count - 1;
+        lock_retval = ddtp_unlock(&dlock->ref_count_lock);
+    }
+    return(lock_retval);
+}
+
+short ddtp_get_ref_count(ddtp_locks_t* dlock) {
+    int lock_retval = -1;
+    short rcount = -1;
+
+    lock_retval = ddtp_lock(&dlock->ref_count_lock);
+    if (lock_retval == 0) {
+        rcount = ddtp_ref_count;
+        ddtp_unlock(&dlock->ref_count_lock);
+    }
+    return(rcount);
+}
     
 // Thread(s) and dependent functions
 
@@ -78,6 +111,8 @@ void* _server_inotify_file_watch(void* data) {
     fds[0].events = POLLIN;
 
     while (true) {
+        if (ddtp_get_ref_count(pl_data->locks) <= 0)
+            break;
         poll_num = poll(fds, nfds, -1);
         if (poll_num == -1) {
             if (errno == EINTR)
@@ -113,6 +148,7 @@ int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, ddt
         if (len == -1 && errno != EAGAIN) {
             perror("__handle_inotify_events: read()");
             eventerr = DDTP_POLL_ERROR2;
+            ddtp_decrement_ref_count(dlocks);
             break;
         }
 

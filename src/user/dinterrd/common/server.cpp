@@ -160,26 +160,56 @@ void ddtp_server_process_incoming_payload(ddtp_payload_t* pl, sml::sm<ddtp_serve
 /*
  * Reference: https://man7.org/linux/man-pages/man7/inotify.7.html
  */
-int ddtp_server_load_file_inotify(ddtp_payload_t* pl) {
+int ddtp_server_load_file_inotify(ddtp_thread_data_t* tdat) {
     int fd;
     int* wd;
+    pthread_t loadtid;
 
-    fd = inotify_init1(IN_NONBLOCK);
-    if (fd == -1) {
-        perror("ddtp_server_load_file_inotify: inotify_init1()");
-        return DDTP_LOAD_ERROR1;
+    if (tdat->payload->payload != NULL) {
+        fd = inotify_init1(IN_NONBLOCK);
+        if (fd == -1) {
+            perror("ddtp_server_load_file_inotify: inotify_init1()");
+            return DDTP_LOAD_ERROR1;
+        }
+
+        wd = (int*) calloc(1, sizeof(int));
+        if (wd == NULL) {
+            perror("ddtp_server_load_file_inotify: calloc()");
+            return DDTP_LOAD_ERROR2;
+        }
+
+        wd[0] = inotify_add_watch(fd, (const char*) tdat->payload->payload, IN_ALL_EVENTS);
+        if (wd[0] == -1) {
+            perror("ddtp_server_load_file_inotify: inotify_add_watch()");
+            return DDTP_LOAD_ERROR3;
+        }
+    }
+    else {
+        std::cerr << "ddtp_server_load_file_inotify: payload field is NULL" << std::endl;
+        return DDTP_LOAD_ERROR4;
     }
 
-    wd = (int*) calloc(1, sizeof(int));
-    if (wd == NULL) {
-        perror("ddtp_server_load_file_inotify: calloc()");
-        return DDTP_LOAD_ERROR2;
-    }
+    /* FIXME: move from double locking to single locking to do
+     *        do the right thing here.
+     */
+    if (ddtp_get_ref_count(tdat->locks) < DDTP_MAX_REFERENCES) {
+        // at this point we are committing to inotify events
+        // for the filename passed in from the client, so
+        // increment our reference counter 
+        ddtp_increment_ref_count(tdat->locks);
 
-    wd[0] = inotify_add_watch(fd, (const char*) pl->payload, IN_ALL_EVENTS);
-    if (wd[0] == -1) {
-        perror("ddtp_server_load_file_inotify: inotify_add_watch()");
-        return DDTP_LOAD_ERROR3;
+        // create thread and detach for the inotify event handler
+        if (pthread_create(&loadtid, NULL, _server_inotify_file_watch, (void*) tdat) == 0)
+            pthread_detach(loadtid);
+        else {
+            std::cerr << "ddtp_server_load_file_inotify: pthread_create() failed" << std::endl;
+            ddtp_decrement_ref_count(tdat->locks);
+            return DDTP_LOAD_ERROR6;
+        }
+    }
+    else {
+        std::cerr << "ddtp_server_load_file_inotify: maximum references held" << std::endl;
+        return DDTP_LOAD_ERROR5;
     }
 
     return(0);
