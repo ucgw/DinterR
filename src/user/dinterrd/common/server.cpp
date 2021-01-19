@@ -52,7 +52,6 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
             * a ddtp_payload_t object
             */
             dinterr_readwait(dsock, buffer, bsize, &data_stream);
-            std::cerr << "**> " << data_stream << " <**" << std::endl;
             DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
             ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
             bool valid_type = ddtp_server_validate_incoming_type(pl->type, sm);
@@ -65,14 +64,12 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
 
             if (valid_type == true) {
                 tdat.payload = pl;
-                std::cerr << "==> " << ddtpPayloadType[pl->type] << " <==" << std::endl;
-                std::cerr << "==> " << pl->data << " <==" << std::endl;
                 ddtp_server_process_incoming_payload(&tdat, sm);
             }
 
             ddtp_serdes_destroy(sd);
 
-            break;   // TESTING: understood why based on netcat
+            //break;   // TESTING: understood why based on netcat
                      // calls why this is needed for now. each
                      // nc all is a new client session which
                      // implies the sm object is always starting
@@ -214,8 +211,9 @@ int ddtp_server_load_file_inotify(ddtp_thread_data_t* tdat) {
         ddtp_increment_ref_count(tdat->locks);
 
         // create thread and detach for the inotify event handler
-        if (pthread_create(&loadtid, NULL, _server_inotify_file_watch, (void*) tdat) == 0)
+        if (pthread_create(&loadtid, NULL, _server_inotify_file_watch, (void*) tdat) == 0) {
             pthread_detach(loadtid);
+        }
         else {
             std::cerr << "ddtp_server_load_file_inotify: pthread_create() failed" << std::endl;
             ddtp_decrement_ref_count(tdat->locks);
