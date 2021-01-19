@@ -15,23 +15,23 @@ void ddtp_payload_fill_char_data(ddtp_payload_t* dpl, const char* data) {
 }
 
 /*
- * code taken from stackoverflow
+ * code derived from stackexchange
  *
  * Reference:
- *   https://stackoverflow.com/questions/30840575/how-convert-unsigned-int-to-unsigned-char-array/30840656
+ *   https://electronics.stackexchange.com/questions/78589/how-to-convert-to-unsigned-long-from-4-char-array
  */
 void ddtp_payload_fill_ulong_data(ddtp_payload_t* dpl, uLong data) {
-    dpl->data[0] =  (uLong) data & 0xFF;
-    dpl->data[1] = ((uLong) data>>8)  & 0xFF;
-    dpl->data[2] = ((uLong) data>>16) & 0xFF;
-    dpl->data[3] = ((uLong) data>>24) & 0xFF;
+     dpl->data[0] = data & 0xFF;
+     dpl->data[1] = (data >> 8)  & 0xFF;
+     dpl->data[2] = (data >> 16) & 0xFF;
+     dpl->data[3] = (data >> 24) & 0xFF;
 }
 
 uLong ddtp_payload_extract_ulong_data(ddtp_payload_t* dpl) {
-    printf("\n%02X\n%02X\n%02X\n%02X\n", dpl->data[0], dpl->data[1], dpl->data[2], dpl->data[3]);
-    uLong dval =  (uLong) dpl->data[0] | \
-                 ((uLong) dpl->data[1]<<8)  | \
-                 ((uLong) dpl->data[2]<<16) | \
-                 ((uLong) dpl->data[3]<<24);
-    return(dval);
+    uLong data;
+    data = (dpl->data[3] & 0xFF) << 24 | \
+           (dpl->data[2] & 0xFF) << 16 | \
+           (dpl->data[1] & 0xFF) << 8  | \
+           (dpl->data[0] & 0xFF);
+    return data;
 }
