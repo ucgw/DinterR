@@ -170,9 +170,17 @@ int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, ddt
              *   do a pass on capturing these events, however,
              *   they could prove useful for understanding based
              *   on placement within other non-zero pid/pos events.
-             */ 
+             *
+             * UPDATE:
+             *   because pid 0 is a reference to the kernel's
+             *   scheduler, I am going to put it back in as an
+             *   event to process (extra and redundant data)
+             *
+             *   Reference:
+             *     https://en.wikipedia.org/wiki/Process_identifier
             if (event->pos == 0 && event->pid == 0)
                 continue;
+             */ 
 
             if (event->ra_page_count != 0 || event->ra_misses != 0)
                 set_attr(&attrs, DINTERR_ATTR_READAHEAD);

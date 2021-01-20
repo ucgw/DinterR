@@ -213,9 +213,12 @@ int ddtp_server_load_file_inotify(ddtp_thread_data_t* tdat) {
         // increment our reference counter 
         ddtp_increment_ref_count(tdat->locks);
 
-        // create thread and detach for the inotify event handler
+        // create thread and join for the inotify event handler
+        // TODO: need to add state machine pointer as a member
+        //       to the thread_data_t struct being passed into
+        //       the thread. doing so, will make this a single
+        //       client session model.
         if (pthread_create(&loadtid, NULL, _server_inotify_file_watch, (void*) tdat) == 0) {
-            //pthread_detach(loadtid);
             pthread_join(loadtid, NULL);
         }
         else {
