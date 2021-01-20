@@ -163,6 +163,17 @@ int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, ddt
             dinterr_ts_t timestamp;
             event = (const struct inotify_event *) ptr;
 
+            /* INVESTIGATE:
+             *   for some reason, getting events where
+             *   pid is 0 and pos is 0. the crc value
+             *   is 3330316196 for them. for now, we will
+             *   do a pass on capturing these events, however,
+             *   they could prove useful for understanding based
+             *   on placement within other non-zero pid/pos events.
+             */ 
+            if (event->pos == 0 && event->pid == 0)
+                continue;
+
             if (event->ra_page_count != 0 || event->ra_misses != 0)
                 set_attr(&attrs, DINTERR_ATTR_READAHEAD);
             if (event->pos != event->last_cached_pos)
@@ -182,12 +193,17 @@ int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, ddt
                            .add_timestamp(&timestamp)
                            .calc_crc();
 
+
+            /* Testing...please remove the serdes bits once done...*/
             DinterrSerdesData* serdes = drecord.get_serdes();
+            char* serial_data = (char*)serdes->get_data();
+
+            DinterrSerdesData* unserdes = new DinterrSerdesData(serial_data);
+            dinterr_data_t* unserial_data = (dinterr_data_t*)unserdes->get_data();
+            std::cerr << "Pid: " << unserial_data->_pid << "  Pos: " << unserial_data->_pos << "  Crc32: " << unserial_data->_crc << std::endl;
+
             uLong crc32_key = drecord.get_crc();
-
             ddtp_lock(&dlocks->data_access_lock);
-
-            std::cerr << "DATA CRC32: " << crc32_key << std::endl;
 
             dt->insert(
               crc_data_pair_t(

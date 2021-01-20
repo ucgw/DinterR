@@ -195,6 +195,9 @@ int ddtp_server_load_file_inotify(ddtp_thread_data_t* tdat) {
             perror("ddtp_server_load_file_inotify: inotify_add_watch()");
             return DDTP_LOAD_ERROR3;
         }
+
+        tdat->fd = fd;
+        tdat->wd = wd;
     }
     else {
         std::cerr << "ddtp_server_load_file_inotify: payload field is empty" << std::endl;
@@ -212,7 +215,8 @@ int ddtp_server_load_file_inotify(ddtp_thread_data_t* tdat) {
 
         // create thread and detach for the inotify event handler
         if (pthread_create(&loadtid, NULL, _server_inotify_file_watch, (void*) tdat) == 0) {
-            pthread_detach(loadtid);
+            //pthread_detach(loadtid);
+            pthread_join(loadtid, NULL);
         }
         else {
             std::cerr << "ddtp_server_load_file_inotify: pthread_create() failed" << std::endl;
