@@ -178,9 +178,9 @@ int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, ddt
              *
              *   Reference:
              *     https://en.wikipedia.org/wiki/Process_identifier
+             */ 
             if (event->pos == 0 && event->pid == 0)
                 continue;
-             */ 
 
             if (event->ra_page_count != 0 || event->ra_misses != 0)
                 set_attr(&attrs, DINTERR_ATTR_READAHEAD);

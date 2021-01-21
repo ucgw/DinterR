@@ -38,6 +38,7 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
     tdat.payload = NULL;
     tdat.locks = &tlocks;
     tdat.data = &all_data;
+    tdat._sm = (sml::sm<ddtp_server>*) sm;
 
     if (buffer != NULL) {
         /* while we haven't hit a terminal state
