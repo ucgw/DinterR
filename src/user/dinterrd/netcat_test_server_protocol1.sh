@@ -8,6 +8,9 @@ fi
 
 port=$1
 
+# Reference:
+#   https://stackoverflow.com/questions/43919867/sending-a-hex-string-to-a-remote-via-netcat
+#
 # 0x01 should be the only type that is initially
 # allowed on a client session
 # the remaining ones should fail validation and the
