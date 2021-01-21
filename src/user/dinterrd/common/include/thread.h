@@ -62,6 +62,7 @@ typedef struct ddtp_thread_data {
     ddtp_payload_t* payload;
     ddtp_locks_t* locks;
     dinterr_crc32_data_table_t* data;
+    void* _sm;  // state machine object
     int fd;
     int* wd;
 } ddtp_thread_data_t;
