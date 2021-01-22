@@ -10,50 +10,7 @@
 #include "sockio.h"
 #include "netproto.h"
 #include "maps.h"
-
-#define DDTP_DATA_NOTREADY 0
-#define DDTP_DATA_READY 1
-
-#define DDTP_MAX_REFERENCES 1
-
-// this will be the reference count
-// for number of client sessions
-// connected to server successfully
-// 1:1 ratio of client:inotify watcher thread
-//
-// initially only supporting a single
-// client, but could be useful in the
-// future for extending multi-client support.
-static short ddtp_ref_count;
-
-// this will be the toggle for determining
-// when data is ready to send to client.
-static short ddtp_data_ready;
-
-// locking primitives w/ struct for locks
-// and values to lock on for update
-typedef struct ddtp_locks {
-    pthread_mutex_t data_ready_lock;
-    pthread_mutex_t ref_count_lock;
-    pthread_mutex_t data_access_lock;
-    pthread_cond_t data_ready_cond;
-} ddtp_locks_t;
-
-void ddtp_locks_init(ddtp_locks_t*);
-int ddtp_lock(pthread_mutex_t*);
-int ddtp_unlock(pthread_mutex_t*);
-
-// locking derivatives for synchronizing
-// when data is available to send to client
-// between main thread and inotify handler thread.
-//
-// main thread: ddtp_block_until_data_ready()
-// inotify handler thread: ddtp_signal_data_ready()
-int ddtp_block_until_data_ready(ddtp_locks_t*);
-int ddtp_signal_data_ready(ddtp_locks_t*);
-int ddtp_increment_ref_count(ddtp_locks_t*);
-int ddtp_decrement_ref_count(ddtp_locks_t*);
-short ddtp_get_ref_count(ddtp_locks_t*);
+#include "lock.h"
 
 // this will be the primary struct
 // for input to thread
@@ -65,10 +22,24 @@ typedef struct ddtp_thread_data {
     void* _sm;  // state machine object
     int fd;
     int* wd;
+    short last_error;
 } ddtp_thread_data_t;
 
-// Thread: input will be ddtp_thread_data_t*
-void* _server_inotify_file_watch(void*);
+// Thread: void* input(s) will be ddtp_thread_data_t*
+void* _ddtp_inotify_entry_point(void*);
+void* _ddtp_watch_file_inotify(void*);
+
 int __handle_inotify_events(int, int*, dinterr_crc32_data_table_t*, ddtp_locks_t*);
+
+// migrated over from server.h
+// (single client support)
+void _ddtp_state_verbot(sml::sm<ddtp_server>*, bool);
+void _ddtp_payload_md_verbot(short, bool, bool);
+void _ddtp_char_verbot(const char*, bool);
+
+bool _ddtp_server_validate_incoming_type(short, sml::sm<ddtp_server>*);
+int  _ddtp_load_file_inotify(ddtp_thread_data_t*);
+void _ddtp_process_client_payload(short, ddtp_thread_data_t*);
+bool _ddtp_server_validate_incoming_type(short, sml::sm<ddtp_server>*);
 
 #endif // _THREAD_H_

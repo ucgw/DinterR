@@ -3,97 +3,200 @@
 
 #include "dataproto.cpp"
 
-void ddtp_locks_init(ddtp_locks_t* dlock) {
-    dlock->data_ready_lock = PTHREAD_MUTEX_INITIALIZER;
-    dlock->ref_count_lock = PTHREAD_MUTEX_INITIALIZER;
-    dlock->data_access_lock = PTHREAD_MUTEX_INITIALIZER;
+/*
+ * Reference: https://man7.org/linux/man-pages/man7/inotify.7.html
+ */
+int _ddtp_load_file_inotify(ddtp_thread_data_t* tdat) {
+    int fd;
+    int* wd;
+    pthread_t watchtid;
 
-    dlock->data_ready_cond = PTHREAD_COND_INITIALIZER;
+    if (tdat->payload->data != NULL) {
+        fd = inotify_init1(IN_NONBLOCK);
+        if (fd == -1) {
+            perror("_ddtp_load_file_inotify: inotify_init1()");
+            tdat->last_error = DDTP_LOAD_ERROR1;
+            return DDTP_LOAD_ERROR1;
+        }
 
-    ddtp_ref_count = 0;
-    ddtp_data_ready = DDTP_DATA_NOTREADY;
-}
+        wd = (int*) calloc(1, sizeof(int));
+        if (wd == NULL) {
+            perror("_ddtp_load_file_inotify: calloc()");
+            tdat->last_error = DDTP_LOAD_ERROR2;
+            return DDTP_LOAD_ERROR2;
+        }
 
-int ddtp_lock(pthread_mutex_t* ltype) {
-    if (ltype != NULL) {
-        if (pthread_mutex_lock(ltype) == 0)
-            return(0);
-        perror("ddtp_lock: pthread_mutex_lock()");
-        return(errno);
+        wd[0] = inotify_add_watch(fd, (const char*)tdat->payload->data, IN_ALL_EVENTS);
+        if (wd[0] == -1) {
+            perror("_ddtp_load_file_inotify: inotify_add_watch()");
+            tdat->last_error = DDTP_LOAD_ERROR3;
+            return DDTP_LOAD_ERROR3;
+        }
+
+        tdat->fd = fd;
+        tdat->wd = wd;
     }
-    return(-1);
-}
-
-int ddtp_unlock(pthread_mutex_t* ltype) {
-    if (ltype != NULL) {
-        if (pthread_mutex_unlock(ltype) == 0)
-            return(0);
-        perror("ddtp_unlock: pthread_mutex_unlock()");
-        return(errno);
+    else {
+        _ddtp_char_verbot("_ddtp_load_file_inotify: empty payload field", tdat->sockfd->verbose);
+        tdat->last_error = DDTP_LOAD_ERROR4;
+        return DDTP_LOAD_ERROR4;
     }
-    return(-1);
-}
 
-int ddtp_block_until_data_ready(ddtp_locks_t* dlock) {
-    int lock_retval = -1;
-
-    lock_retval = ddtp_lock(&dlock->data_ready_lock);
-    if (lock_retval == 0) {
-        while (ddtp_data_ready == DDTP_DATA_NOTREADY)
-            pthread_cond_wait(&dlock->data_ready_cond, &dlock->data_ready_lock);
-        ddtp_data_ready = DDTP_DATA_NOTREADY;
-        lock_retval = ddtp_unlock(&dlock->data_ready_lock);
+    if (ddtp_increment_ref_count(tdat->locks) == 0) {
+        if (pthread_create(&watchtid, NULL, _ddtp_watch_file_inotify, (void*) tdat) == 0) {
+            pthread_detach(watchtid);
+        }
+        else {
+            _ddtp_char_verbot("_ddtp_load_file_inotify: pthread_create() failed", tdat->sockfd->verbose);
+            ddtp_decrement_ref_count(tdat->locks);
+            tdat->last_error = DDTP_LOAD_ERROR6;
+            return DDTP_LOAD_ERROR6;
+        }
     }
-    return(lock_retval);
-}
-
-int ddtp_signal_data_ready(ddtp_locks_t* dlock) {
-    int lock_retval = -1;
-
-    lock_retval = ddtp_lock(&dlock->data_ready_lock);
-    if (lock_retval == 0) {
-        ddtp_data_ready = DDTP_DATA_READY;
-        lock_retval = ddtp_unlock(&dlock->data_ready_lock);
-        pthread_cond_signal(&dlock->data_ready_cond);
+    else {
+        _ddtp_char_verbot("_ddtp_load_file_inotify: maximum references held", tdat->sockfd->verbose);
+        tdat->last_error = DDTP_LOAD_ERROR5;
+        return DDTP_LOAD_ERROR5;
     }
-    return(lock_retval);
+
+    return(0);
 }
 
-int ddtp_increment_ref_count(ddtp_locks_t* dlock) {
-    int lock_retval = -1;
-
-    lock_retval = ddtp_lock(&dlock->ref_count_lock);
-    if (lock_retval == 0) {
-        ddtp_ref_count += 1;
-        lock_retval = ddtp_unlock(&dlock->ref_count_lock);
+void _ddtp_process_client_payload(short type, ddtp_thread_data_t* tdat) {
+    using namespace sml;
+    sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) tdat->_sm;
+    switch(type) {
+        case LOAD_REQUEST:
+            _ddtp_char_verbot("LOAD_REQUEST payload", tdat->sockfd->verbose);
+            if (_ddtp_load_file_inotify(tdat) == 0)
+                sm->process_event(load_success{});
+            else
+                sm->process_event(load_fail{});
+            break;
     }
-    return(lock_retval);
 }
 
-int ddtp_decrement_ref_count(ddtp_locks_t* dlock) {
-    int lock_retval = -1;
+/*
+ * the valid incoming payload types for the server are as follows:
+ * - LOAD_REQUEST
+ * - DATA_RETRY
+ * - DATA_CONFIRM
+ * - UNLOAD_REQUEST
+ */
+bool _ddtp_server_validate_incoming_type(short type, sml::sm<ddtp_server>* sm) {
+    bool validated = false;
 
-    lock_retval = ddtp_lock(&dlock->ref_count_lock);
-    if (lock_retval == 0) {
-        ddtp_ref_count = ddtp_ref_count - 1;
-        lock_retval = ddtp_unlock(&dlock->ref_count_lock);
+    using namespace sml;
+    switch(type) {
+        case LOAD_REQUEST:
+            if (sm->is("load_wait"_s))
+                validated = true;
+            break;
+        case DATA_RETRY:
+            if (sm->is("data_pend"_s))
+                validated = true;
+            break;
+        case DATA_CONFIRM:
+            if (sm->is("data_pend"_s))
+                validated = true;
+            break;
+        case UNLOAD_REQUEST:
+            if (sm->is("data_pend"_s))
+                validated = true;
+            break;
+        default:
+            // do nothing, validated is false
+            // by default
+            ;
     }
-    return(lock_retval);
+
+    // transition to terminal state
+    // if we haven't positively validated type
+    // relative to expected state
+    if (validated == false)
+        sm->process_event(terminate{});
+
+    return(validated);
 }
 
-short ddtp_get_ref_count(ddtp_locks_t* dlock) {
-    int lock_retval = -1;
-    short rcount = -1;
-
-    lock_retval = ddtp_lock(&dlock->ref_count_lock);
-    if (lock_retval == 0) {
-        rcount = ddtp_ref_count;
-        ddtp_unlock(&dlock->ref_count_lock);
+// the ddtp state verbose bot
+void _ddtp_state_verbot(sml::sm<ddtp_server>* sm, bool verbose) {
+    using namespace sml;
+    if (verbose == true) {
+        std::cerr << "CURR_STATE: terminal:" << sm->is(X) << \
+              "  " << "data_pend:" << sm->is("data_pend"_s) << \
+              "  " << "data_ready:" << sm->is("data_ready"_s) << \
+              "  " << "data_purge:" << sm->is("data_purge"_s) << \
+              "  " << "load_wait:" << sm->is("load_wait"_s) << \
+              "  " << "unload_pend:" << sm->is("unload_pend"_s) << \
+        std::endl;
     }
-    return(rcount);
 }
-    
+
+void _ddtp_payload_md_verbot(short type, bool validated, bool verbose) {
+    if (verbose == true) {
+        printf("payload type: %d (0x%02X) validated?: %d\n", type, type, validated);
+    }
+}
+
+void _ddtp_char_verbot(const char* msg, bool verbose) {
+    if (verbose == true)
+        std::cerr << msg << std::endl;
+}
+
 // Thread(s) and dependent functions
+
+void* _ddtp_inotify_entry_point(void* data) {
+    using namespace sml;
+    ddtp_thread_data_t* _data = (ddtp_thread_data_t*) data;
+
+    int readstat = SOCKIO_SUCCESS;
+    size_t bsize = sizeof(char) * SOCKIO_BUFFSIZE;
+    char* buffer = (char*) malloc(bsize);
+    std::string data_stream = "";
+
+    if (buffer != NULL) {
+        /* while we haven't hit a terminal state
+         * process socket io (sml::X) represents
+         * the terminal state in the sml::sm object
+         */
+        bool verbose = _data->sockfd->verbose;
+        sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) _data->_sm;
+
+        while (sm->is(X) == false) {
+            /* wait for something to come over the wire
+             * and consume the stream ultimately as a
+             * char array via the data_stream object.
+             * this in turn will be deserialized into
+             * a ddtp_payload_t object
+             */
+            if (sm->is("data_ready"_s) == true)
+                ddtp_block_until_data_ready(_data->locks);
+            dinterr_readwait(_data->sockfd, buffer, bsize, &data_stream);
+
+            DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
+            ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
+            bool valid = _ddtp_server_validate_incoming_type(pl->type, sm);
+
+            _ddtp_payload_md_verbot(pl->type, valid, verbose);
+            _ddtp_state_verbot(sm, verbose);
+
+            if (valid == true) {
+                _data->payload = pl;
+                _ddtp_process_client_payload(pl->type, _data);
+            }
+
+            ddtp_serdes_destroy(sd);
+        }
+
+        free(buffer);
+    }
+    else {
+        _data->last_error = DDTP_ENTRY_ERROR1;
+    }
+
+    pthread_exit(NULL);
+}
 
 /*
  * core functional source code taken from inotify man page
@@ -101,12 +204,14 @@ short ddtp_get_ref_count(ddtp_locks_t* dlock) {
  *
  * Reference: https://man7.org/linux/man-pages/man7/inotify.7.html
  */
-void* _server_inotify_file_watch(void* data) {
+void* _ddtp_watch_file_inotify(void* data) {
     ddtp_thread_data_t* pl_data = (ddtp_thread_data_t*) data;
     int poll_num;
     int poll_err;
     nfds_t nfds = 1;
     struct pollfd fds[1];
+
+    _ddtp_state_verbot((sml::sm<ddtp_server>*) pl_data->_sm, true);
 
     fds[0].fd = pl_data->fd;
     fds[0].events = POLLIN;
@@ -120,14 +225,14 @@ void* _server_inotify_file_watch(void* data) {
                 continue;
             perror("_server_inotify_file_watch: poll()");
             poll_err = DDTP_POLL_ERROR1;
-            pthread_exit(&poll_err);
+            pthread_exit(NULL);
         }
 
         if (poll_num > 0) {
             if (fds[0].revents & POLLIN) {
                 if (__handle_inotify_events(pl_data->fd,pl_data->wd, pl_data->data, pl_data->locks) != 0) {
                     poll_err = DDTP_EVENT_ERROR1;
-                    pthread_exit(&poll_err);
+                    pthread_exit(NULL);
                 }
             }
         }

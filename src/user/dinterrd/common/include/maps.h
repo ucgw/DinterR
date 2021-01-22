@@ -17,6 +17,7 @@
 #define DDTP_LOAD_ERROR4 0x7
 #define DDTP_LOAD_ERROR5 0x8
 #define DDTP_LOAD_ERROR6 0x9
+#define DDTP_ENTRY_ERROR1 0xa
 
 #define CRC32_PURGE true
 #define CRC32_KEEP false
@@ -35,7 +36,8 @@ static dinterr_lookup_table_t ddtpError {
   { DDTP_EVENT_ERROR1, "inotify event handling error" },
   { DDTP_LOAD_ERROR4, "payload on load is NULL" },
   { DDTP_LOAD_ERROR5, "references are already at maximum" },
-  { DDTP_LOAD_ERROR6, "pthread_create() failure" }
+  { DDTP_LOAD_ERROR6, "pthread_create() failure" },
+  { DDTP_ENTRY_ERROR1, "sockio buffer malloc() failed" }
 };
 
 static dinterr_lookup_table_t ddtpPayloadType {
