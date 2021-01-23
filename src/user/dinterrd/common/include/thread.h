@@ -11,6 +11,14 @@
 #include "netproto.h"
 #include "maps.h"
 #include "lock.h"
+#include "queue.h"
+
+/*
+ * The global queue (gq) where the inotify event
+ * handling thread enqueues serialized dinterr data
+ * with its crc32 value for the main thread to process
+ */
+static ThreadsafeQueue<crc_data_pair_t> gq;
 
 // this will be the primary struct
 // for input to thread
@@ -18,7 +26,6 @@ typedef struct ddtp_thread_data {
     dinterr_sock_t* sockfd;
     ddtp_payload_t* payload;
     ddtp_locks_t* locks;
-    dinterr_crc32_data_table_t* data;
     void* _sm;  // state machine object
     int fd;
     int* wd;
@@ -29,13 +36,14 @@ typedef struct ddtp_thread_data {
 void* _ddtp_inotify_entry_point(void*);
 void* _ddtp_watch_file_inotify(void*);
 
-int __handle_inotify_events(int, int*, dinterr_crc32_data_table_t*, ddtp_locks_t*);
+int __handle_inotify_events(int, int*, ddtp_locks_t*);
 
 // migrated over from server.h
 // (single client support)
 void _ddtp_state_verbot(sml::sm<ddtp_server>*, bool);
 void _ddtp_payload_md_verbot(short, bool, bool);
 void _ddtp_char_verbot(const char*, bool);
+void _ddtp_data_client_target_verbot(crc_data_pair_t*, bool);
 
 bool _ddtp_server_validate_incoming_type(short, sml::sm<ddtp_server>*);
 int  _ddtp_load_file_inotify(ddtp_thread_data_t*);

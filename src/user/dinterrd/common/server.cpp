@@ -11,7 +11,6 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
 
     ddtp_thread_data_t tdat;
     ddtp_locks_t tlocks;
-    dinterr_crc32_data_table_t all_data;
     pthread_t entryid;
 
     ddtp_locks_init(&tlocks);
@@ -20,7 +19,6 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
     tdat.sockfd = dsock;
     tdat.payload = NULL;
     tdat.locks = &tlocks;
-    tdat.data = &all_data;
     tdat._sm = (sml::sm<ddtp_server>*) sm;
 
     if (pthread_create(&entryid, NULL, _ddtp_inotify_entry_point, (void*)&tdat) == 0)

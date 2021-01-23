@@ -48,6 +48,18 @@ DinterrSerdesNetwork::DinterrSerdesNetwork(const char *data) {
     }
 }
 
+DinterrSerdesData::DinterrSerdesData(const DinterrSerdesData& src) {
+    _serdes = (dinterr_data_t*)malloc(sizeof(dinterr_data_t));
+    if (_serdes)
+        memcpy(_serdes, src._serdes, sizeof(dinterr_data_t));
+}
+
+DinterrSerdesNetwork::DinterrSerdesNetwork(const DinterrSerdesNetwork& src) {
+    _serdes = (ddtp_payload_t*)malloc(sizeof(ddtp_payload_t));
+    if (_serdes)
+        memcpy(_serdes, src._serdes, sizeof(ddtp_payload_t));
+}
+
 DinterrSerdes::~DinterrSerdes() {
     if (this->_serdes)
         free(this->_serdes);

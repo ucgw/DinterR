@@ -1,5 +1,9 @@
 #include <iostream>
+#include <cstring>
+
 #include "thread.h"
+#include "payload.h"
+#include "queue.h"
 
 #include "dataproto.cpp"
 
@@ -134,14 +138,36 @@ void _ddtp_state_verbot(sml::sm<ddtp_server>* sm, bool verbose) {
 }
 
 void _ddtp_payload_md_verbot(short type, bool validated, bool verbose) {
-    if (verbose == true) {
+    if (verbose == true)
         printf("payload type: %d (0x%02X) validated?: %d\n", type, type, validated);
-    }
 }
 
 void _ddtp_char_verbot(const char* msg, bool verbose) {
     if (verbose == true)
         std::cerr << msg << std::endl;
+}
+
+void _ddtp_data_client_target_verbot(crc_data_pair_t* pl_data, bool verbose) {
+    if (verbose == true) {
+        int i = 0;
+        uLong crc = std::get<0>(*pl_data);
+        DinterrSerdesData serdes = std::get<1>(*pl_data);
+        const char* data = (const char*) serdes.get_data();
+
+        printf("data crc32: %lu\n", crc);
+        for (; i <= sizeof(dinterr_data_t); i++) {
+            printf("%02X ", data[i]);
+        }
+        printf("\n");
+
+        /* DEBUG
+        */
+        DinterrSerdesData* unserdes = new DinterrSerdesData(data);
+        dinterr_data_t* d_data = (dinterr_data_t*)unserdes->get_data();
+
+        std::cout << "PID: " << d_data->_pid << " POS: " << d_data->_pos << std::endl;
+        delete unserdes;
+    }
 }
 
 // Thread(s) and dependent functions
@@ -151,11 +177,11 @@ void* _ddtp_inotify_entry_point(void* data) {
     ddtp_thread_data_t* _data = (ddtp_thread_data_t*) data;
 
     int readstat = SOCKIO_SUCCESS;
-    size_t bsize = sizeof(char) * SOCKIO_BUFFSIZE;
-    char* buffer = (char*) malloc(bsize);
+    size_t bsize = MAX_PAYLOAD_SIZE;
+    char* readin_buffer = (char*) malloc(bsize);
     std::string data_stream = "";
 
-    if (buffer != NULL) {
+    if (readin_buffer != NULL) {
         bool verbose = _data->sockfd->verbose;
         sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) _data->_sm;
 
@@ -172,9 +198,12 @@ void* _ddtp_inotify_entry_point(void* data) {
              */
             if (sm->is("data_ready"_s) == true) {
                 ddtp_block_until_data_ready(_data->locks);
+                while (auto t = gq.pop()) {
+                    _ddtp_data_client_target_verbot((crc_data_pair_t*)&t, true);
+                }
             }
             else if (sm->is("load_wait"_s) == true) {
-                dinterr_readwait(_data->sockfd, buffer, bsize, &data_stream);
+                dinterr_readwait(_data->sockfd, readin_buffer, bsize, &data_stream);
                 DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
                 ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
                 bool valid = _ddtp_server_validate_incoming_type(pl->type, sm);
@@ -187,12 +216,13 @@ void* _ddtp_inotify_entry_point(void* data) {
                 }
 
                 ddtp_serdes_destroy(sd);
+                memset(readin_buffer, '\0', bsize);
             }
 
             _ddtp_state_verbot(sm, verbose);
         }
 
-        free(buffer);
+        free(readin_buffer);
     }
     else {
         _data->last_error = DDTP_ENTRY_ERROR1;
@@ -233,17 +263,20 @@ void* _ddtp_watch_file_inotify(void* data) {
 
         if (poll_num > 0) {
             if (fds[0].revents & POLLIN) {
-                if (__handle_inotify_events(pl_data->fd,pl_data->wd, pl_data->data, pl_data->locks) != 0) {
+                if (__handle_inotify_events(pl_data->fd, pl_data->wd, pl_data->locks) != 0) {
                     poll_err = DDTP_EVENT_ERROR1;
                     pthread_exit(NULL);
                 }
+
             }
         }
+
+        ddtp_signal_data_ready(pl_data->locks);
     }
     pthread_exit(NULL);
 }
 
-int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, ddtp_locks_t* dlocks) {
+int __handle_inotify_events(int fd, int *wd, ddtp_locks_t* dlocks) {
     char buf[4096]
     __attribute__ ((aligned(__alignof__(struct inotify_event))));
     const struct inotify_event *event;
@@ -271,27 +304,20 @@ int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, ddt
             dinterr_ts_t timestamp;
             event = (const struct inotify_event *) ptr;
 
-            /* INVESTIGATE:
-             *   for some reason, getting events where
-             *   pid is 0 and pos is 0. the crc value
-             *   is 3330316196 for them. for now, we will
-             *   do a pass on capturing these events, however,
-             *   they could prove useful for understanding based
-             *   on placement within other non-zero pid/pos events.
+            /* 
+             * because pid 0 is a reference to the kernel's
+             * scheduler, I am going to put it back in as an
+             * event to filter (extra and redundant data)
              *
-             * UPDATE:
-             *   because pid 0 is a reference to the kernel's
-             *   scheduler, I am going to put it back in as an
-             *   event to filter (extra and redundant data)
-             *
-             *   Reference:
-             *     https://en.wikipedia.org/wiki/Process_identifier
+             * Reference:
+             *   https://en.wikipedia.org/wiki/Process_identifier
              */ 
             if (event->pid == 0)
                 continue;
 
             if (event->ra_page_count != 0 || event->ra_misses != 0)
                 set_attr(&attrs, DINTERR_ATTR_READAHEAD);
+
             if (event->pos != event->last_cached_pos)
                 set_attr(&attrs, DINTERR_ATTR_MULTISEEK);
 
@@ -310,29 +336,18 @@ int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, ddt
                            .calc_crc();
 
 
-            /* Testing...please remove the serdes bits once done...*/
-            DinterrSerdesData* serdes = drecord.get_serdes();
-            char* serial_data = (char*)serdes->get_data();
-
-            DinterrSerdesData* unserdes = new DinterrSerdesData(serial_data);
-            dinterr_data_t* unserial_data = (dinterr_data_t*)unserdes->get_data();
-            std::cerr << "Pid: " << unserial_data->_pid << "  Pos: " << unserial_data->_pos << "  Crc32: " << unserial_data->_crc << std::endl;
-
             uLong crc32_key = drecord.get_crc();
-            ddtp_lock(&dlocks->data_access_lock);
 
-            dt->insert(
-              crc_data_pair_t(
-                crc32_key,
-                ddtp_serdes_create((const char*)serdes->get_data())
-              )
-            );
+            DinterrSerdesData* serdes = drecord.get_serdes();
+            DinterrSerdesData sd_copy = *serdes;
 
-            ddtp_signal_data_ready(dlocks);
-            ddtp_unlock(&dlocks->data_access_lock);
+            crc_data_pair_t d_pair (crc32_key, sd_copy);
+
+            gq.push(d_pair);
 
             delete serdes;
         }
     }
+
     return(eventerr);
 }

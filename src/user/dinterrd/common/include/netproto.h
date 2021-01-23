@@ -95,4 +95,6 @@ typedef struct ddtp_payload {
     char data[MAX_DATASIZE];
 } ddtp_payload_t;
 
+#define MAX_PAYLOAD_SIZE sizeof(ddtp_payload_t)
+
 #endif  // _NETPROTO_H_

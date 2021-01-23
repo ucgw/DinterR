@@ -19,6 +19,7 @@ class DinterrSerdes {
     public:
         ~DinterrSerdes();
         void* get_data(void);
+
 };
 
 class DinterrSerdesData:public DinterrSerdes {
@@ -26,12 +27,18 @@ class DinterrSerdesData:public DinterrSerdes {
         DinterrSerdesData(const dinterr_data_t*); // serialize mode
         DinterrSerdesData(const char*); // deserialize mode
         
+        // copy constructor for getting event data out
+        // of the stack of the inotify handler thread
+        DinterrSerdesData(const DinterrSerdesData&);
 };
 
 class DinterrSerdesNetwork:public DinterrSerdes {
     public:
         DinterrSerdesNetwork(const ddtp_payload_t*); // serialize mode
         DinterrSerdesNetwork(const char*); // deserialize mode
+
+        // copy constructor in case it is needed between threads
+        DinterrSerdesNetwork(const DinterrSerdesNetwork&);
 };
 
 DinterrSerdesNetwork* ddtp_serdes_create(const char*);

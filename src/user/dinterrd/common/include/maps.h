@@ -22,10 +22,9 @@
 #define CRC32_PURGE true
 #define CRC32_KEEP false
 
-typedef std::map<int, const char*> dinterr_lookup_table_t;
-typedef std::map<uLong, DinterrSerdesNetwork*> dinterr_crc32_data_table_t;
-typedef std::map<uLong, bool> dinterr_crc32_purge_table_t;
-typedef std::pair<uLong, DinterrSerdesNetwork*> crc_data_pair_t;
+typedef std::map<short, const char*> dinterr_lookup_table_t;
+typedef std::map<uLong, const char*> dinterr_crc32_purge_table_t;
+typedef std::pair<uLong, DinterrSerdesData> crc_data_pair_t;
 
 static dinterr_lookup_table_t ddtpError {
   { DDTP_LOAD_ERROR1, "inotify_init1() failure" },
