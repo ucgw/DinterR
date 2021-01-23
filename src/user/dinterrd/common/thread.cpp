@@ -282,12 +282,12 @@ int __handle_inotify_events(int fd, int *wd, dinterr_crc32_data_table_t* dt, ddt
              * UPDATE:
              *   because pid 0 is a reference to the kernel's
              *   scheduler, I am going to put it back in as an
-             *   event to process (extra and redundant data)
+             *   event to filter (extra and redundant data)
              *
              *   Reference:
              *     https://en.wikipedia.org/wiki/Process_identifier
              */ 
-            if (event->pos == 0 && event->pid == 0)
+            if (event->pid == 0)
                 continue;
 
             if (event->ra_page_count != 0 || event->ra_misses != 0)

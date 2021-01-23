@@ -24,13 +24,22 @@ static short ddtp_ref_count;
 // when data is ready to send to client.
 static short ddtp_data_ready;
 
+// this will be the toggle for determining
+// when to transition to data_purge state
+//   - if client confirms
+// or transition back to data_ready state and
+// retransmit data requested by client.
+static short ddtp_data_pend;
+
 // locking primitives w/ struct for locks
 // and values to lock on for update
 typedef struct ddtp_locks {
     pthread_mutex_t data_ready_lock;
+    pthread_mutex_t data_pend_lock;
     pthread_mutex_t ref_count_lock;
     pthread_mutex_t data_access_lock;
     pthread_cond_t data_ready_cond;
+    pthread_cond_t data_pend_cond;
 } ddtp_locks_t;
 
 void ddtp_locks_init(ddtp_locks_t*);
@@ -39,17 +48,12 @@ int ddtp_unlock(pthread_mutex_t*);
 
 // locking derivatives for synchronizing
 // when data is available to send to client
-// between main thread and inotify handler thread.
-//
-// main thread: ddtp_block_until_data_ready()
-// inotify handler thread: ddtp_signal_data_ready()
-//
-// UPDATE:
-// moving away from thread separation between
-// data insertion and data sends to a client, however,
-// will keep these functions around in case
+// and when data is requested for retransmit
+// back to client
 int ddtp_block_until_data_ready(ddtp_locks_t*);
+int ddtp_block_until_data_pend(ddtp_locks_t*);
 int ddtp_signal_data_ready(ddtp_locks_t*);
+int ddtp_signal_data_pend(ddtp_locks_t*);
 int ddtp_increment_ref_count(ddtp_locks_t*);
 int ddtp_decrement_ref_count(ddtp_locks_t*);
 short ddtp_get_ref_count(ddtp_locks_t*);
