@@ -156,13 +156,13 @@ void* _ddtp_inotify_entry_point(void* data) {
     std::string data_stream = "";
 
     if (buffer != NULL) {
+        bool verbose = _data->sockfd->verbose;
+        sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) _data->_sm;
+
         /* while we haven't hit a terminal state
          * process socket io (sml::X) represents
          * the terminal state in the sml::sm object
          */
-        bool verbose = _data->sockfd->verbose;
-        sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) _data->_sm;
-
         while (sm->is(X) == false) {
             /* wait for something to come over the wire
              * and consume the stream ultimately as a
@@ -170,23 +170,26 @@ void* _ddtp_inotify_entry_point(void* data) {
              * this in turn will be deserialized into
              * a ddtp_payload_t object
              */
-            if (sm->is("data_ready"_s) == true)
+            if (sm->is("data_ready"_s) == true) {
                 ddtp_block_until_data_ready(_data->locks);
-            dinterr_readwait(_data->sockfd, buffer, bsize, &data_stream);
+            }
+            else if (sm->is("load_wait"_s) == true) {
+                dinterr_readwait(_data->sockfd, buffer, bsize, &data_stream);
+                DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
+                ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
+                bool valid = _ddtp_server_validate_incoming_type(pl->type, sm);
 
-            DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
-            ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
-            bool valid = _ddtp_server_validate_incoming_type(pl->type, sm);
+                _ddtp_payload_md_verbot(pl->type, valid, verbose);
 
-            _ddtp_payload_md_verbot(pl->type, valid, verbose);
-            _ddtp_state_verbot(sm, verbose);
+                if (valid == true) {
+                    _data->payload = pl;
+                    _ddtp_process_client_payload(pl->type, _data);
+                }
 
-            if (valid == true) {
-                _data->payload = pl;
-                _ddtp_process_client_payload(pl->type, _data);
+                ddtp_serdes_destroy(sd);
             }
 
-            ddtp_serdes_destroy(sd);
+            _ddtp_state_verbot(sm, verbose);
         }
 
         free(buffer);
