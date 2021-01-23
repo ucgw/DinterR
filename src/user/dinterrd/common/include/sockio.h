@@ -23,7 +23,7 @@
 #define SOCKIO_MOREDATA 1
 #define SOCKIO_DONE 2
 
-#define SOCKIO_BYTE_COUNT(nbytes) (nbytes >= SOCKIO_MAX_BUFFSIZE ? \
+#define SOCKIO_BYTE_COUNT(nbytes) (nbytes >= SOCKIO_BUFFSIZE ? \
                                    SOCKIO_BUFFSIZE : \
                                    nbytes)
 
@@ -57,7 +57,7 @@ void dinterrd_run_server(dinterr_sock_t*, uint16_t, const char* ipaddr=NULL);
 
 // basic data read / write over sockets
 int dinterr_sock_read(dinterr_sock_t*, char*, size_t);
-int dinterr_sock_write(dinterr_sock_t*, char*);
+int dinterr_sock_write(dinterr_sock_t*, const char*);
 
 void dinterr_readwait(dinterr_sock_t*, char*, size_t, std::string*);
 #endif // _SOCKIO_H_
