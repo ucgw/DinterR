@@ -50,10 +50,17 @@ int dinterr_get_sockfd(dinterr_sock_t*);
 
 // functions for server and client to accept and connect
 // for service
-int dinterrd_accept(dinterr_sock_t*);  // server
+//
+// moved dinterrd_accept() to server.h due to dependency
+// issue with client needing server.o linkage when declared
+// and defined in sockio.h
+// -gw 01/24
 int dinterrd_connect(dinterr_sock_t*); // client
 
-void dinterrd_run_server(dinterr_sock_t*, uint16_t, const char* ipaddr=NULL);
+// moved dinterrd_run_server() to server.h for reasons
+// similar to dinterrd_accept()
+// -gw 01/24
+
 
 // basic data read / write over sockets
 int dinterr_sock_read(dinterr_sock_t*, char*, size_t);

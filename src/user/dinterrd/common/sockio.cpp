@@ -15,16 +15,6 @@ void dinterr_readwait(dinterr_sock_t* dsock, char* buffer, size_t bsize, std::st
     } while (readstat != SOCKIO_DONE);
 }
         
-void dinterrd_run_server(dinterr_sock_t* dsock, uint16_t port, const char* ipaddr) {
-    if (ipaddr == NULL)
-        dinterr_sock_init(dsock, DINTERR_SERVER);
-    else
-        dinterr_sock_init(dsock, DINTERR_SERVER, ipaddr);
-
-    if (dinterr_sock_create(dsock, port) == SOCKIO_SUCCESS)
-        dinterrd_accept(dsock);
-}
-
 void dinterr_sock_init(dinterr_sock_t* dsock, int type, const char* ipaddr) {
     memset(dsock, 0, sizeof(*dsock));
     dsock->type = type;
@@ -111,56 +101,12 @@ sock_cleanup_fail:
     return(SOCKIO_FAIL);
 }
 
-int dinterrd_accept(dinterr_sock_t* dsock) {
-    if (dsock->type == DINTERR_SERVER) {
-        int connsock = NOSOCKFD;
-
-        while (true) {
-            uint16_t src_port;
-            char* cli_addr;
-            connsock = accept(dsock->srv_sockfd,
-                              (struct sockaddr*)&dsock->address,
-                              (socklen_t*)&dsock->addrlen);
-
-            if (connsock == -1) {
-                perror("dinterrd_accept: accept()");
-                return(SOCKIO_FAIL);
-            }
-
-            dsock->conn_sockfd = connsock;
-
-            src_port = htons(dsock->address.sin_port);
-            cli_addr = inet_ntoa(dsock->address.sin_addr);
-
-            if (dsock->verbose == true)
-                std::cerr << "dinterrd: client " << \
-                             cli_addr << ":" << src_port << \
-                             " connected" << std::endl;
-
-            /* handle protocol / requests. 
-             * for now, only one client
-             * at a time can be handled
-             */
-            dinterrd_processor_sm_wrapper(dsock, cli_addr, src_port);
-
-            close(connsock);
-            if (dsock->verbose == true)
-                std::cerr << "dinterrd: client " << \
-                             cli_addr << ":" << src_port << \
-                             " disconnected" << std::endl;
-        }
-        return(SOCKIO_SUCCESS);
-    }
-    return(SOCKIO_FAIL);
-}
-
 int dinterr_sock_read(dinterr_sock_t* dsock, char* buffer, size_t bsize) {
     int sockerr = 0;
     ssize_t readin = 1;
     int sockfd = NOSOCKFD;
 
     sockfd = dsock->conn_sockfd;
-
     if (sockfd == NOSOCKFD)
         return(SOCKIO_FAIL);
 
@@ -178,9 +124,40 @@ try_sockread_again:
         return(SOCKIO_FAIL);
     }
 
-    if (readin < bsize)
+    if (readin <= bsize)
         return(SOCKIO_DONE);
     return(SOCKIO_MOREDATA);
+}
+
+int dinterr_sock_write(dinterr_sock_t* dsock, const char* buffer) {
+    int sockioerrno = 0;
+    ssize_t written = 0;
+    size_t remaining = MAX_PAYLOAD_SIZE;
+    int sockfd = NOSOCKFD;
+
+    sockfd = dsock->conn_sockfd;
+    if (sockfd == NOSOCKFD)
+        return(SOCKIO_FAIL);
+
+    while (remaining > 0) {
+        size_t write_byte_count = SOCKIO_BYTE_COUNT(remaining);
+
+        written = write(sockfd, buffer, write_byte_count);
+        sockioerrno = errno;
+
+        if (written == -1) {
+            if (sockioerrno == EINTR)
+                continue;
+
+            perror("dinterr_sock_write");
+            return(SOCKIO_FAIL);
+        }
+
+        remaining -= written;
+        buffer += written;
+    }
+
+    return(SOCKIO_SUCCESS);
 }
 
 int dinterr_get_sockfd(dinterr_sock_t* dsock) {

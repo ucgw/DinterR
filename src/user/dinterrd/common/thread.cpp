@@ -156,18 +156,27 @@ void _ddtp_data_client_target_verbot(crc_data_pair_t* pl_data, bool verbose) {
 
         printf("data crc32: %lu\n", crc);
         for (; i <= sizeof(dinterr_data_t); i++) {
-            printf("%02X ", data[i]);
+            printf("0x%02X ", data[i]);
         }
         printf("\n");
 
         /* DEBUG
-        */
         DinterrSerdesData* unserdes = new DinterrSerdesData(data);
         dinterr_data_t* d_data = (dinterr_data_t*)unserdes->get_data();
 
-        std::cout << "PID: " << d_data->_pid << " POS: " << d_data->_pos << std::endl;
+        std::cout << "CRC32: " << d_data->_crc << " PID: " << d_data->_pid << " POS: " << d_data->_pos << std::endl;
+
         delete unserdes;
+        */
     }
+}
+
+int _ddtp_send_data_client_target(crc_data_pair_t* _data, dinterr_sock_t* dsock) {
+    uLong crc = std::get<0>(*_data);
+    DinterrSerdesData serdes = std::get<1>(*_data);
+    const char* data = (const char*) serdes.get_data();
+
+    return(dinterr_sock_write(dsock, data));
 }
 
 // Thread(s) and dependent functions
@@ -199,7 +208,8 @@ void* _ddtp_inotify_entry_point(void* data) {
             if (sm->is("data_ready"_s) == true) {
                 ddtp_block_until_data_ready(_data->locks);
                 while (auto t = gq.pop()) {
-                    _ddtp_data_client_target_verbot((crc_data_pair_t*)&t, true);
+                    _ddtp_data_client_target_verbot((crc_data_pair_t*)&t, _data->sockfd->verbose);
+                    _ddtp_send_data_client_target((crc_data_pair_t*)&t, _data->sockfd);
                 }
             }
             else if (sm->is("load_wait"_s) == true) {
