@@ -21,6 +21,7 @@ int main(int argc, char** argv) {
     uint16_t ddtp_port;
     bool verbose;
     dinterr_sock_t dsock;
+    int sockretval = SOCKIO_FAIL;
 
     cxxopts::Options options("ddtp-cli", "A DinterR data tranport protocol client");
     options
@@ -51,5 +52,13 @@ int main(int argc, char** argv) {
     }
 
     dinterr_sock_init(&dsock, DINTERR_CLIENT, ddtp_server.c_str());
-    dinterr_sock_create(&dsock, ddtp_port);
+    sockretval = dinterr_sock_create(&dsock, ddtp_port);
+
+    if (sockretval == SOCKIO_FAIL) {
+        std::cerr << "tearing down cli_sockfd" << std::endl;
+        shutdown(dsock.cli_sockfd, SHUT_RDWR);
+        exit(1);
+    }
+
+    exit(0);
 }
