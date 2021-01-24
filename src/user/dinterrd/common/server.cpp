@@ -35,7 +35,7 @@ void dinterrd_run_server(dinterr_sock_t* dsock, uint16_t port, const char* ipadd
     else
         dinterr_sock_init(dsock, DINTERR_SERVER, ipaddr);
 
-    if (dinterr_sock_create(dsock, port) == SOCKIO_SUCCESS)
+    if (dinterr_sock_create(dsock, port, true) == SOCKIO_SUCCESS)
         dinterrd_accept(dsock);
 }
 

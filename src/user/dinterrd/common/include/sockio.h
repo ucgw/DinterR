@@ -45,7 +45,7 @@ typedef struct dinterr_sock {
 // helper functions to setup appropriate socket types
 // for either server or client
 void dinterr_sock_init(dinterr_sock_t*, int, const char* ipaddr=NULL);
-int dinterr_sock_create(dinterr_sock_t*, uint16_t);
+int dinterr_sock_create(dinterr_sock_t*, uint16_t, bool verbose=false);
 int dinterr_get_sockfd(dinterr_sock_t*);
 
 // functions for server and client to accept and connect
@@ -55,7 +55,6 @@ int dinterr_get_sockfd(dinterr_sock_t*);
 // issue with client needing server.o linkage when declared
 // and defined in sockio.h
 // -gw 01/24
-int dinterrd_connect(dinterr_sock_t*); // client
 
 // moved dinterrd_run_server() to server.h for reasons
 // similar to dinterrd_accept()

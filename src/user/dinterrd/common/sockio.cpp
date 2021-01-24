@@ -27,11 +27,10 @@ void dinterr_sock_init(dinterr_sock_t* dsock, int type, const char* ipaddr) {
     dsock->conn_sockfd = NOSOCKFD;
     dsock->ipaddr = ipaddr;
     dsock->addrlen = sizeof(dsock->address);
-    dsock->verbose = true;
     dsock->port = 0;
 }
 
-int dinterr_sock_create(dinterr_sock_t* dsock, uint16_t port) {
+int dinterr_sock_create(dinterr_sock_t* dsock, uint16_t port, bool verbose) {
     int retval = SOCKIO_SUCCESS;
     int inet_aton_retval = 0;
     int sockerrno = 0;
@@ -47,6 +46,7 @@ int dinterr_sock_create(dinterr_sock_t* dsock, uint16_t port) {
     dsock->address.sin_family = AF_INET;
     dsock->address.sin_port = htons(port);
     dsock->port = port;
+    dsock->verbose = verbose;
 
     if (dsock->type == DINTERR_SERVER) {
         dsock->srv_sockfd = sockfd;
@@ -87,6 +87,7 @@ int dinterr_sock_create(dinterr_sock_t* dsock, uint16_t port) {
         }
 
         dsock->cli_sockfd = sockfd;
+        dsock->conn_sockfd = sockfd;
     }
     else {
         std::cerr << "dinterrd: invalid type specified." << std::endl;

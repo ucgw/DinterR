@@ -1,21 +1,16 @@
-#include "netproto.h"
-#include "sockio.h"
-#include "serdes.h"
-#include "payload.h"
-#include "maps.h"
+#include "client.h"
 
 #include "cxxopts.hpp"
 
 /* default port to use based on the listing of iana
- * registered ports. 8992 was unassigned as of 2021-01-15
+ * registered ports is 8992
+ * (unassigned as of 2021-01-15)
  *
  * Reference:
  *   https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.txt
  */
 
 int main(int argc, char** argv) {
-    using namespace sml;
-    sml::sm<ddtp_client> sm;
     std::string ddtp_server;
     std::string ddtp_rfile;
     uint16_t ddtp_port;
@@ -51,14 +46,7 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    dinterr_sock_init(&dsock, DINTERR_CLIENT, ddtp_server.c_str());
-    sockretval = dinterr_sock_create(&dsock, ddtp_port);
-
-    if (sockretval == SOCKIO_FAIL) {
-        std::cerr << "tearing down cli_sockfd" << std::endl;
-        shutdown(dsock.cli_sockfd, SHUT_RDWR);
-        exit(1);
-    }
-
-    exit(0);
+    return(dinterrd_run_client(&dsock,
+              ddtp_port, ddtp_server.c_str(),
+                  ddtp_rfile.c_str(), verbose));
 }
