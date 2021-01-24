@@ -1,0 +1,7 @@
+This program is developed by Gabriel West gawest<At>noctrl<DoT>edu
+
+Third Party Code Used / Acknowledgements:
+-----------------------------------------
+- (cxxopts) - https://github.com/jarro2783/cxxopts
+- (boost-ext/SML) - https://github.com/boost-ext/sml
+- (ProtEnc) - https://github.com/nitnelave/ProtEnc
