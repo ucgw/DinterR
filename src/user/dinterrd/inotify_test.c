@@ -1,6 +1,7 @@
 /*
- * dinterrd:
- * daemon for getting extra data interaction information from files
+ * inotify_test:
+ *   test inotify watcher for 
+ *   getting extra data interaction information from an input file
  * 
  * initial source code taken from inotify man page.
  * 
