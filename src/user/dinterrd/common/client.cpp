@@ -30,7 +30,7 @@ int dinterrd_connect(dinterr_sock_t* dsock, sml::sm<ddtp_client>* sm, const char
             goto free_and_fail;
         }
 
-        response = (char*)malloc(sizeof(char) * SOCKIO_BUFFSIZE);
+        response = (char*)malloc(sizeof(char) * MAX_PAYLOAD_SIZE);
 
         if (response == NULL) {
             shutdown(dsock->cli_sockfd, SHUT_RDWR);
@@ -54,14 +54,15 @@ int dinterrd_connect(dinterr_sock_t* dsock, sml::sm<ddtp_client>* sm, const char
 
             poll(poll_sockfd, 1, 0);
             do {
-                dinterr_sock_read(dsock, response, SOCKIO_BUFFSIZE);
+                dinterr_sock_read(dsock, response, MAX_PAYLOAD_SIZE);
                 int i = 0;
                 for (i; i <= sizeof(pl); i++) {
                     printf("0x%02X ", response[i]);
                 }
-                printf("\n");
+                printf("\n----------\n");
                 ddtp_client_serdes_response(response);
-                memset(response, '\0', SOCKIO_BUFFSIZE);
+                printf("\n----------\n");
+                memset(response, '\0', MAX_PAYLOAD_SIZE);
                 poll(poll_sockfd, 1, 0);
             } while (poll_sockfd[0].revents & POLLRDNORM);
         }

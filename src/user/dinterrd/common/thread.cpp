@@ -158,16 +158,17 @@ void _ddtp_data_client_target_verbot(crc_data_pair_t* pl_data, bool verbose) {
         for (; i <= sizeof(dinterr_data_t); i++) {
             printf("0x%02X ", data[i]);
         }
-        printf("\n");
+        printf("\n----------\n");
 
         /* DEBUG
+        */
         DinterrSerdesData* unserdes = new DinterrSerdesData(data);
         dinterr_data_t* d_data = (dinterr_data_t*)unserdes->get_data();
 
         std::cout << "CRC32: " << d_data->_crc << " PID: " << d_data->_pid << " POS: " << d_data->_pos << std::endl;
+        printf("\n----------\n");
 
         delete unserdes;
-        */
     }
 }
 
