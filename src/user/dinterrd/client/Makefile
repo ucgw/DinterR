@@ -1,7 +1,7 @@
 CC=g++
 #CFLAGS=-I./include -std=c++2a -Wall -pedantic -g -lz
 CFLAGS=-I../common/include -L../common -std=c++2a -pedantic -g -lz -lpthread
-OBJS_CLIENT=../common/client.o ../common/sockio.o ../common/serdes.o ../common/payload.o ../common/lock.o ddtp_cli.o
+OBJS_CLIENT=../common/client.o ../common/sockio.o ../common/serdes.o ../common/payload.o ../common/lock.o ../common/util.o ddtp_cli.o
 
 TARGET1=ddtp-cli
 

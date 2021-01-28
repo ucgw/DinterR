@@ -13,6 +13,7 @@
 int main(int argc, char** argv) {
     std::string ddtp_server;
     std::string ddtp_rfile;
+    std::string ddtp_csvfile;
     uint16_t ddtp_port;
     bool verbose;
     dinterr_sock_t dsock;
@@ -22,6 +23,8 @@ int main(int argc, char** argv) {
     options
       .add_options()
       ("f,file", "remote file to watch via inotify for extra data",
+       cxxopts::value<std::string>())
+      ("c,csv", "csv file to write/append inotify extra data",
        cxxopts::value<std::string>())
       ("s,server", "remote ddtp server hostname/ip to connect to",
        cxxopts::value<std::string>())
@@ -36,9 +39,10 @@ int main(int argc, char** argv) {
         auto result = options.parse(argc, argv);
 
         verbose = result["verbose"].as<bool>();
-        ddtp_server = result["server"].as<std::string>();
-        ddtp_rfile  = result["file"].as<std::string>();
-        ddtp_port   = result["port"].as<uint16_t>();
+        ddtp_server  = result["server"].as<std::string>();
+        ddtp_rfile   = result["file"].as<std::string>();
+        ddtp_csvfile = result["csv"].as<std::string>();
+        ddtp_port    = result["port"].as<uint16_t>();
     }
     catch (const cxxopts::OptionException& argerr) {
         std::cerr << "Error parsing: " << argerr.what() << std::endl;
@@ -48,5 +52,6 @@ int main(int argc, char** argv) {
 
     return(dinterrd_run_client(&dsock,
               ddtp_port, ddtp_server.c_str(),
-                  ddtp_rfile.c_str(), verbose));
+                  ddtp_rfile.c_str(), ddtp_csvfile.c_str(),
+                      verbose));
 }
