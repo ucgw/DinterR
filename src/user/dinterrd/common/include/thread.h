@@ -12,6 +12,7 @@
 #include "maps.h"
 #include "lock.h"
 #include "queue.h"
+#include "payload.h"
 
 /*
  * The global queue (gq) where the inotify event
@@ -46,6 +47,7 @@ void _ddtp_char_verbot(const char*, bool);
 void _ddtp_data_client_target_verbot(crc_data_pair_t*, bool);
 
 int _ddtp_send_data_client_target(crc_data_pair_t*, dinterr_sock_t*);
+int _ddtp_server_send_payload(ddtp_payload_t*, dinterr_sock_t*);
 
 bool _ddtp_server_validate_incoming_type(short, sml::sm<ddtp_server>*);
 int  _ddtp_load_file_inotify(ddtp_thread_data_t*);

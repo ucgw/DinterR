@@ -24,6 +24,9 @@ int dinterrd_connect(dinterr_sock_t* dsock, sml::sm<ddtp_client>* sm, const char
     int connect_retval = 0;
     char* response = NULL;
     ddtp_payload_t pl;
+    size_t bsize = MAX_PAYLOAD_SIZE;
+    std::string data_stream = "";
+    short error_code;
 
     if (dsock->type == DINTERR_CLIENT) {
         connect_retval = connect(dsock->cli_sockfd,
@@ -35,7 +38,7 @@ int dinterrd_connect(dinterr_sock_t* dsock, sml::sm<ddtp_client>* sm, const char
             goto free_and_fail;
         }
 
-        response = (char*)malloc(sizeof(char) * MAX_PAYLOAD_SIZE);
+        response = (char*)malloc(sizeof(char) * bsize);
 
         if (response == NULL) {
             shutdown(dsock->cli_sockfd, SHUT_RDWR);
@@ -46,20 +49,78 @@ int dinterrd_connect(dinterr_sock_t* dsock, sml::sm<ddtp_client>* sm, const char
         if (dsock->verbose == true)
             std::cout << "dinterrd_connect: client connected [" << ntohs(dsock->address.sin_port) << "]" << std::endl;
 
+        /* while we haven't hit a terminal state
+         * process socket io (sml::X) represents
+         * the terminal state in the sml::sm object
+         */
         while (sm->is(X) == false) {
             if (sm->is("load_init"_s) == true) {
+                /*
+                 * send a LOAD_REQUEST with the full path
+                 * to the server
+                 */
                 ddtp_payload_init(LOAD_REQUEST, &pl);
                 ddtp_payload_fill_char_data(&pl, filename);
                 ddtp_client_send_payload(dsock, &pl);
-                sm->process_event(load_success{});
+
+                /*
+                 * transition to "load_pend"_s state
+                 * by processing load_request event
+                 * just sent to server
+                 */
+                sm->process_event(load_request{});
+
+                /*
+                 * do a readwait on socket for either LOAD_FAIL
+                 * or LOAD_SUCCEED payload from server...actually
+                 * if the payload is not of type LOAD_SUCCESS,
+                 * shutdown the client connection and free_and_fail
+                 */
+                dinterr_readwait(dsock, response, bsize, &data_stream);
+
+                /*
+                 * deserialize data received on socket to a
+                 * ddtp_payload_t object
+                 */
+                DinterrSerdesNetwork* sd = ddtp_serdes_create(
+                                             data_stream.c_str());
+                ddtp_payload_t* srvpl = (ddtp_payload_t*) sd->get_data();
+
+                if (srvpl->type == LOAD_SUCCEED) {
+                    sm->process_event(load_success{});
+                }
+                else {
+                    sm->process_event(load_fail{});
+                    error_code = ddtp_payload_extract_short_data(srvpl);
+                    std::cerr << "dinterrd_connect: LOAD_REQUEST Error: " << \
+                                 ddtpError[error_code] << std::endl;
+                    shutdown(dsock->cli_sockfd, SHUT_RDWR);
+                }
+                ddtp_serdes_destroy(sd);
+
+                /*
+                 * load_fail event will transition to terminal
+                 * state, so free_and_fail
+                 */
+                if (sm->is(X) == true)
+                    goto free_and_fail;
             }
 
             poll_sockfd[0].fd = dsock->conn_sockfd;
             poll_sockfd[0].events = POLLRDNORM;
 
+            /*
+             * making it this far implies we
+             * poll on socket for dinterr data
+             * stream from server
+             *
+             * IMPROVEMENT: verifying dinterr data
+             *              via crc32 values already
+             *              in data payload
+             */
             poll(poll_sockfd, 1, 0);
             do {
-                dinterr_sock_read(dsock, response, MAX_PAYLOAD_SIZE);
+                dinterr_sock_read(dsock, response, bsize);
                 /* DEBUG
                 int i = 0;
                 for (i; i <= sizeof(pl); i++) {
@@ -81,6 +142,9 @@ free_and_fail:
     return(SOCKIO_FAIL);
 }
 
+/*
+ * Analog: _ddtp_server_send_payload()
+ */
 int ddtp_client_send_payload(dinterr_sock_t* dsock, ddtp_payload_t* pl) {
     DinterrSerdesNetwork* cli_pl = new DinterrSerdesNetwork(pl);
     char* pl_data = (char*) cli_pl->get_data();

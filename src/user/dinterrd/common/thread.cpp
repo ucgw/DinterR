@@ -69,13 +69,24 @@ int _ddtp_load_file_inotify(ddtp_thread_data_t* tdat) {
 void _ddtp_process_client_payload(short type, ddtp_thread_data_t* tdat) {
     using namespace sml;
     sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) tdat->_sm;
+    ddtp_payload_t clipl;
+    short error_code;
+
     switch(type) {
         case LOAD_REQUEST:
             _ddtp_char_verbot("LOAD_REQUEST payload", tdat->sockfd->verbose);
-            if (_ddtp_load_file_inotify(tdat) == 0)
+            error_code = _ddtp_load_file_inotify(tdat);
+            if (error_code == 0) {
+                ddtp_payload_init(LOAD_SUCCEED, &clipl);
+                _ddtp_server_send_payload(&clipl, tdat->sockfd);
                 sm->process_event(load_success{});
-            else
+            }
+            else {
+                ddtp_payload_init(LOAD_FAIL, &clipl);
+                ddtp_payload_fill_short_data(&clipl, error_code);
+                _ddtp_server_send_payload(&clipl, tdat->sockfd);
                 sm->process_event(load_fail{});
+            }
             break;
     }
 }
@@ -178,6 +189,17 @@ int _ddtp_send_data_client_target(crc_data_pair_t* _data, dinterr_sock_t* dsock)
     const char* data = (const char*) serdes.get_data();
 
     return(dinterr_sock_write(dsock, data));
+}
+
+/*
+ * Analog: ddtp_client_send_payload()
+ */
+int _ddtp_server_send_payload(ddtp_payload_t* pl, dinterr_sock_t* dsock) {
+    DinterrSerdesNetwork* srv_pl = new DinterrSerdesNetwork(pl);
+    char* pl_data = (char*) srv_pl->get_data();
+    int retval = dinterr_sock_write(dsock, (const char*) pl_data);
+    delete srv_pl;
+    return(retval);
 }
 
 // Thread(s) and dependent functions

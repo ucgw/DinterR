@@ -35,3 +35,19 @@ uLong ddtp_payload_extract_ulong_data(ddtp_payload_t* dpl) {
            (dpl->data[0] & 0xFF);
     return data;
 }
+
+/*
+ * short int is 2-bytes in size, so just do what we do
+ * for uLongs but for shorts (only filling 2 bytes in char array)
+ */
+void ddtp_payload_fill_short_data(ddtp_payload_t* dpl, short data) {
+    dpl->data[0] = data & 0xFF;
+    dpl->data[1] = (data >> 8) & 0xFF;
+}
+
+short ddtp_payload_extract_short_data(ddtp_payload_t* dpl) {
+    short data;
+    data = (dpl->data[1] & 0xFF) << 8  | \
+           (dpl->data[0] & 0xFF);
+    return data;
+}

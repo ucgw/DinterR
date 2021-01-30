@@ -39,7 +39,7 @@ struct ddtp_server {
     auto operator()() const {
         using namespace sml;
         return make_transition_table(
-          *"load_wait"_s   + event<load_fail> = "load_wait"_s,
+          *"load_wait"_s   + event<load_fail> = X,
            "load_wait"_s   + event<load_success> = "data_ready"_s,
            "data_ready"_s  + event<data_send> = "data_pend"_s,
            "data_ready"_s  + event<unload_request> = "unload_pend"_s,
