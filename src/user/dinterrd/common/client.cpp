@@ -60,15 +60,14 @@ int dinterrd_connect(dinterr_sock_t* dsock, sml::sm<ddtp_client>* sm, const char
             poll(poll_sockfd, 1, 0);
             do {
                 dinterr_sock_read(dsock, response, MAX_PAYLOAD_SIZE);
-                /*
+                /* DEBUG
                 int i = 0;
                 for (i; i <= sizeof(pl); i++) {
                     printf("0x%02X ", response[i]);
                 }
                 printf("\n----------\n");
                 */
-                ddtp_client_serdes_response(response, csv);
-                // printf("\n----------\n");
+                ddtp_client_process_response(response, csv);
                 memset(response, '\0', MAX_PAYLOAD_SIZE);
                 poll(poll_sockfd, 1, 0);
             } while (poll_sockfd[0].revents & POLLRDNORM);
@@ -90,7 +89,7 @@ int ddtp_client_send_payload(dinterr_sock_t* dsock, ddtp_payload_t* pl) {
     return(retval);
 }
 
-void ddtp_client_serdes_response(const char* response, std::ofstream* csv) {
+void ddtp_client_process_response(const char* response, std::ofstream* csv) {
     DinterrSerdesData* cli_dat = new DinterrSerdesData(response);
     dinterr_data_t* d_data = (dinterr_data_t*) cli_dat->get_data();
     dump_dinterr_data_toCsv(csv, d_data);

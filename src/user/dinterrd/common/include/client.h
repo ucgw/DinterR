@@ -20,6 +20,6 @@
 int dinterrd_run_client(dinterr_sock_t*, uint16_t, const char*, const char*, const char*, bool verbose=false);
 int dinterrd_connect(dinterr_sock_t*, sml::sm<ddtp_client>*, const char*, std::ofstream*);
 int ddtp_client_send_payload(dinterr_sock_t*, ddtp_payload_t*);
-void ddtp_client_serdes_response(const char*, std::ofstream*);
+void ddtp_client_process_response(const char*, std::ofstream*);
 
 #endif // _CLIENT_H_
