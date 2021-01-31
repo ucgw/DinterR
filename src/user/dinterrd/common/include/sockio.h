@@ -9,6 +9,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+#include "netproto.h"
+
 #define NOSOCKFD -1
 
 #define DINTERR_SERVER 0
@@ -16,7 +18,7 @@
 
 #define SOCKIO_RETRY_MAX 3
 #define SOCKIO_RETRY_WAITTIME 1
-#define SOCKIO_BUFFSIZE 4096
+#define SOCKIO_BUFFSIZE MAX_PAYLOAD_SIZE
 
 #define SOCKIO_FAIL -1
 #define SOCKIO_SUCCESS 0
