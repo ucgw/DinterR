@@ -136,13 +136,30 @@ bool _ddtp_server_validate_incoming_type(short type, ddtp_thread_data_t* tdat) {
 }
 
 // the ddtp state verbose bot
-void _ddtp_state_verbot(sml::sm<ddtp_server>* sm, bool verbose) {
+void _ddtp_state_verbot(sml::sm<ddtp_server>* sm, ddtp_locks_t* locks, bool verbose) {
+    bool terminal_state_teller;
+    bool data_ready_state_teller;
+    bool load_wait_state_teller;
+    bool unload_pend_state_teller;
+
     using namespace sml;
     if (verbose == true) {
-        std::cerr << "CURR_STATE: terminal:" << sm->is(X) << \
-              "  " << "data_ready:" << sm->is("data_ready"_s) << \
-              "  " << "load_wait:" << sm->is("load_wait"_s) << \
-              "  " << "unload_pend:" << sm->is("unload_pend"_s) << \
+        ddtp_lock(&locks->sm_lock);
+        terminal_state_teller = sm->is(X);
+        data_ready_state_teller = sm->is("data_ready"_s);
+        load_wait_state_teller = sm->is("load_wait"_s);
+        unload_pend_state_teller = sm->is("unload_pend"_s);
+        ddtp_unlock(&locks->sm_lock);
+        
+        std::cerr << \
+            "CURR_STATE: terminal:" << \
+            terminal_state_teller << "  " << \
+            "data_ready:" << \
+            data_ready_state_teller << "  " << \
+            "load_wait:" << \
+            load_wait_state_teller << "  " << \
+            "unload_pend:" << \
+            unload_pend_state_teller << \
         std::endl;
     }
 }
@@ -210,6 +227,10 @@ void* _ddtp_inotify_entry_point(void* data) {
     std::string data_stream = "";
     ddtp_payload_t clipl;
     pthread_t asyncplid;
+    bool terminal_state_teller;
+    bool data_ready_state_teller;
+    bool load_wait_state_teller;
+    bool unload_pend_state_teller;
 
     if (readin_buffer != NULL) {
         bool verbose = _data->sockfd->verbose;
@@ -234,15 +255,21 @@ void* _ddtp_inotify_entry_point(void* data) {
          * process socket io (sml::X) represents
          * the terminal state in the sml::sm object
          */
-        while (sm->is(X) == false) {
+        terminal_state_teller = false;
+        while (terminal_state_teller == false) {
             /* wait for something to come over the wire
              * and consume the stream ultimately as a
              * char array via the data_stream object.
              * this in turn will be deserialized into
              * a ddtp_payload_t object
              */
-            if (sm->is("data_ready"_s) == true) {
+            ddtp_lock(&_data->locks->sm_lock);
+            data_ready_state_teller = sm->is("data_ready"_s);
+            load_wait_state_teller = sm->is("load_wait"_s);
+            unload_pend_state_teller = sm->is("unload_pend"_s);
+            ddtp_unlock(&_data->locks->sm_lock);
 
+            if (data_ready_state_teller == true) {
                 /* conditional lock on having full records in the
                  * global queue to send to our client, this blocks
                  * until data_ready_lock is set to DDTP_DATA_READY
@@ -254,7 +281,7 @@ void* _ddtp_inotify_entry_point(void* data) {
                     _ddtp_send_data_client_target((crc_data_pair_t*)&t, _data->sockfd);
                 }
             }
-            else if (sm->is("load_wait"_s) == true) {
+            else if (load_wait_state_teller == true) {
                 dinterr_readwait(_data->sockfd, readin_buffer, bsize, &data_stream);
                 DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
                 ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
@@ -270,7 +297,7 @@ void* _ddtp_inotify_entry_point(void* data) {
                 ddtp_serdes_destroy(sd);
                 memset(readin_buffer, '\0', bsize);
             }
-            else if (sm->is("unload_pend"_s) == true) {
+            else if (unload_pend_state_teller == true) {
                 /* client has sent an UNLOAD_REQUEST signaling to
                  * server that they wish to finish session, so process
                  * any remaining records and send to client before
@@ -280,14 +307,13 @@ void* _ddtp_inotify_entry_point(void* data) {
                 ddtp_lock(&_data->locks->sm_lock);
                 sm->process_event(terminate{});
                 ddtp_unlock(&_data->locks->sm_lock);
-
-                while (auto t = gq.pop()) {
-                    _ddtp_data_client_target_verbot((crc_data_pair_t*)&t, _data->sockfd->verbose);
-                    _ddtp_send_data_client_target((crc_data_pair_t*)&t, _data->sockfd);
-                }
             }
 
-            _ddtp_state_verbot(sm, verbose);
+            ddtp_lock(&_data->locks->sm_lock);
+            terminal_state_teller = sm->is(X);
+            ddtp_unlock(&_data->locks->sm_lock);
+
+            _ddtp_state_verbot(sm, _data->locks, verbose);
         }
 
         free(readin_buffer);
@@ -343,40 +369,45 @@ free_signal:
  * Reference: https://man7.org/linux/man-pages/man7/inotify.7.html
  */
 void* _ddtp_watch_file_inotify(void* data) {
-    ddtp_thread_data_t* pl_data = (ddtp_thread_data_t*) data;
+    ddtp_thread_data_t* _data = (ddtp_thread_data_t*) data;
     int poll_num;
     nfds_t nfds = 1;
     struct pollfd fds[1];
-    sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) pl_data->_sm;
+    sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) _data->_sm;
 
-    _ddtp_state_verbot(sm, true);
+    _ddtp_state_verbot(sm, _data->locks, true);
 
-    fds[0].fd = pl_data->fd;
+    fds[0].fd = _data->fd;
     fds[0].events = POLLIN;
 
     while (true) {
-        if (ddtp_get_ref_count(pl_data->locks) <= 0)
+        if (ddtp_get_ref_count(_data->locks) <= 0)
+            break;
+        if (fds[0].fd < 0)
             break;
         poll_num = poll(fds, nfds, -1);
         if (poll_num == -1) {
             if (errno == EINTR)
                 continue;
             perror("_server_inotify_file_watch: poll()");
-            pl_data->last_error = DDTP_POLL_ERROR1;
-            pthread_exit(NULL);
+            _data->last_error = DDTP_POLL_ERROR1;
+            break;
         }
 
         if (poll_num > 0) {
             if (fds[0].revents & POLLIN) {
-                if (__handle_inotify_events(pl_data->fd, pl_data->wd, pl_data->locks) != 0) {
-                    pl_data->last_error = DDTP_EVENT_ERROR1;
-                    pthread_exit(NULL);
+                if (__handle_inotify_events(_data->fd, _data->wd, _data->locks) != 0) {
+                    _data->last_error = DDTP_EVENT_ERROR1;
+                    break;
                 }
 
             }
         }
 
-        ddtp_signal_data_ready(pl_data->locks);
+        if (gq.size() > 0)
+            ddtp_signal_data_ready(_data->locks);
+        else
+            break;
     }
     pthread_exit(NULL);
 }
@@ -390,13 +421,16 @@ int __handle_inotify_events(int fd, int *wd, ddtp_locks_t* dlocks) {
 
     for (;;) {
         eventerr = 0;
+        if (fd < 0)
+            return(DDTP_POLL_ERROR2);
+
         len = read(fd, buf, sizeof(buf));
 
         if (len == -1 && errno != EAGAIN) {
             perror("__handle_inotify_events: read()");
             eventerr = DDTP_POLL_ERROR2;
             ddtp_decrement_ref_count(dlocks);
-            break;
+            return(eventerr);
         }
 
         if (len <= 0)
