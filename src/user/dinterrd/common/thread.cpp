@@ -79,13 +79,19 @@ void _ddtp_process_client_payload(short type, ddtp_thread_data_t* tdat) {
             if (error_code == 0) {
                 ddtp_payload_init(LOAD_SUCCEED, &clipl);
                 _ddtp_server_send_payload(&clipl, tdat->sockfd);
+
+                ddtp_lock(&tdat->locks->sm_lock);
                 sm->process_event(load_success{});
+                ddtp_unlock(&tdat->locks->sm_lock);
             }
             else {
                 ddtp_payload_init(LOAD_FAIL, &clipl);
                 ddtp_payload_fill_short_data(&clipl, error_code);
                 _ddtp_server_send_payload(&clipl, tdat->sockfd);
+
+                ddtp_lock(&tdat->locks->sm_lock);
                 sm->process_event(load_fail{});
+                ddtp_unlock(&tdat->locks->sm_lock);
             }
             break;
     }
@@ -94,29 +100,21 @@ void _ddtp_process_client_payload(short type, ddtp_thread_data_t* tdat) {
 /*
  * the valid incoming payload types for the server are as follows:
  * - LOAD_REQUEST
- * - DATA_RETRY
- * - DATA_CONFIRM
  * - UNLOAD_REQUEST
  */
-bool _ddtp_server_validate_incoming_type(short type, sml::sm<ddtp_server>* sm) {
+bool _ddtp_server_validate_incoming_type(short type, ddtp_thread_data_t* tdat) {
     bool validated = false;
 
     using namespace sml;
+    sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) tdat->_sm;
+
     switch(type) {
         case LOAD_REQUEST:
             if (sm->is("load_wait"_s))
                 validated = true;
             break;
-        case DATA_RETRY:
-            if (sm->is("data_pend"_s))
-                validated = true;
-            break;
-        case DATA_CONFIRM:
-            if (sm->is("data_pend"_s))
-                validated = true;
-            break;
         case UNLOAD_REQUEST:
-            if (sm->is("data_pend"_s))
+            if (sm->is("data_ready"_s))
                 validated = true;
             break;
         default:
@@ -128,8 +126,11 @@ bool _ddtp_server_validate_incoming_type(short type, sml::sm<ddtp_server>* sm) {
     // transition to terminal state
     // if we haven't positively validated type
     // relative to expected state
-    if (validated == false)
+    if (validated == false) {
+        ddtp_lock(&tdat->locks->sm_lock);
         sm->process_event(terminate{});
+        ddtp_unlock(&tdat->locks->sm_lock);
+    }
 
     return(validated);
 }
@@ -139,9 +140,7 @@ void _ddtp_state_verbot(sml::sm<ddtp_server>* sm, bool verbose) {
     using namespace sml;
     if (verbose == true) {
         std::cerr << "CURR_STATE: terminal:" << sm->is(X) << \
-              "  " << "data_pend:" << sm->is("data_pend"_s) << \
               "  " << "data_ready:" << sm->is("data_ready"_s) << \
-              "  " << "data_purge:" << sm->is("data_purge"_s) << \
               "  " << "load_wait:" << sm->is("load_wait"_s) << \
               "  " << "unload_pend:" << sm->is("unload_pend"_s) << \
         std::endl;
@@ -171,8 +170,6 @@ void _ddtp_data_client_target_verbot(crc_data_pair_t* pl_data, bool verbose) {
         }
         printf("\n----------\n");
 
-        /* DEBUG
-        */
         DinterrSerdesData* unserdes = new DinterrSerdesData(data);
         dinterr_data_t* d_data = (dinterr_data_t*)unserdes->get_data();
 
@@ -208,14 +205,30 @@ void* _ddtp_inotify_entry_point(void* data) {
     using namespace sml;
     ddtp_thread_data_t* _data = (ddtp_thread_data_t*) data;
 
-    int readstat = SOCKIO_SUCCESS;
     size_t bsize = MAX_PAYLOAD_SIZE;
     char* readin_buffer = (char*) malloc(bsize);
     std::string data_stream = "";
+    ddtp_payload_t clipl;
+    pthread_t asyncplid;
 
     if (readin_buffer != NULL) {
         bool verbose = _data->sockfd->verbose;
         sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) _data->_sm;
+
+        /*   spawn another thread for handling incoming
+         *   UNLOAD_REQUEST from client. this thread
+         *   will have the capability to signal data_ready
+         *   but before doing so, will transition to
+         *   unload_pend state, which will prohibit entering
+         *   this code path next iteration of the while()
+         */
+        if (pthread_create(&asyncplid, NULL, _ddtp_async_client_payload_handler, (void*) _data) == 0) {
+            pthread_detach(asyncplid);
+        }
+        else {
+            _data->last_error = DDTP_LOAD_ERROR6;
+            pthread_exit(NULL);
+        }
 
         /* while we haven't hit a terminal state
          * process socket io (sml::X) represents
@@ -229,7 +242,13 @@ void* _ddtp_inotify_entry_point(void* data) {
              * a ddtp_payload_t object
              */
             if (sm->is("data_ready"_s) == true) {
+
+                /* conditional lock on having full records in the
+                 * global queue to send to our client, this blocks
+                 * until data_ready_lock is set to DDTP_DATA_READY
+                 */
                 ddtp_block_until_data_ready(_data->locks);
+
                 while (auto t = gq.pop()) {
                     _ddtp_data_client_target_verbot((crc_data_pair_t*)&t, _data->sockfd->verbose);
                     _ddtp_send_data_client_target((crc_data_pair_t*)&t, _data->sockfd);
@@ -239,7 +258,7 @@ void* _ddtp_inotify_entry_point(void* data) {
                 dinterr_readwait(_data->sockfd, readin_buffer, bsize, &data_stream);
                 DinterrSerdesNetwork* sd = ddtp_serdes_create(data_stream.c_str());
                 ddtp_payload_t* pl = (ddtp_payload_t*) sd->get_data();
-                bool valid = _ddtp_server_validate_incoming_type(pl->type, sm);
+                bool valid = _ddtp_server_validate_incoming_type(pl->type, _data);
 
                 _ddtp_payload_md_verbot(pl->type, valid, verbose);
 
@@ -250,6 +269,22 @@ void* _ddtp_inotify_entry_point(void* data) {
 
                 ddtp_serdes_destroy(sd);
                 memset(readin_buffer, '\0', bsize);
+            }
+            else if (sm->is("unload_pend"_s) == true) {
+                /* client has sent an UNLOAD_REQUEST signaling to
+                 * server that they wish to finish session, so process
+                 * any remaining records and send to client before
+                 * entering into terminal state effectively disconnecting
+                 * client.
+                 */
+                ddtp_lock(&_data->locks->sm_lock);
+                sm->process_event(terminate{});
+                ddtp_unlock(&_data->locks->sm_lock);
+
+                while (auto t = gq.pop()) {
+                    _ddtp_data_client_target_verbot((crc_data_pair_t*)&t, _data->sockfd->verbose);
+                    _ddtp_send_data_client_target((crc_data_pair_t*)&t, _data->sockfd);
+                }
             }
 
             _ddtp_state_verbot(sm, verbose);
@@ -264,6 +299,43 @@ void* _ddtp_inotify_entry_point(void* data) {
     pthread_exit(NULL);
 }
 
+void* _ddtp_async_client_payload_handler(void* data) {
+    using namespace sml;
+    ddtp_thread_data_t* _data = (ddtp_thread_data_t*) data;
+    sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) _data->_sm;
+
+    size_t bsize = MAX_PAYLOAD_SIZE;
+    char* readin_buffer = (char*) malloc(bsize);
+    std::string data_stream = "";
+    DinterrSerdesNetwork* sd;
+    ddtp_payload_t* pl;
+    bool valid;
+
+    while (true) {
+        dinterr_readwait(_data->sockfd, readin_buffer, bsize, &data_stream);
+        sd = ddtp_serdes_create(data_stream.c_str());
+        pl = (ddtp_payload_t*) sd->get_data();
+        valid = _ddtp_server_validate_incoming_type(pl->type, _data);
+
+        if (valid == true && pl->type == UNLOAD_REQUEST) {
+            //ddtp_lock(&_data->locks->sm_lock);
+            sm->process_event(unload_request{});
+            //ddtp_unlock(&_data->locks->sm_lock);
+
+            goto free_signal;
+        }
+            
+        ddtp_serdes_destroy(sd);
+        memset(readin_buffer, '\0', bsize);
+    }
+
+free_signal:
+    free(readin_buffer);
+    ddtp_serdes_destroy(sd);
+    ddtp_signal_data_ready(_data->locks);
+    pthread_exit(NULL);
+}
+
 /*
  * core functional source code taken from inotify man page
  * for _server_load_file_and_watch() thread function
@@ -273,11 +345,11 @@ void* _ddtp_inotify_entry_point(void* data) {
 void* _ddtp_watch_file_inotify(void* data) {
     ddtp_thread_data_t* pl_data = (ddtp_thread_data_t*) data;
     int poll_num;
-    int poll_err;
     nfds_t nfds = 1;
     struct pollfd fds[1];
+    sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) pl_data->_sm;
 
-    _ddtp_state_verbot((sml::sm<ddtp_server>*) pl_data->_sm, true);
+    _ddtp_state_verbot(sm, true);
 
     fds[0].fd = pl_data->fd;
     fds[0].events = POLLIN;
@@ -290,14 +362,14 @@ void* _ddtp_watch_file_inotify(void* data) {
             if (errno == EINTR)
                 continue;
             perror("_server_inotify_file_watch: poll()");
-            poll_err = DDTP_POLL_ERROR1;
+            pl_data->last_error = DDTP_POLL_ERROR1;
             pthread_exit(NULL);
         }
 
         if (poll_num > 0) {
             if (fds[0].revents & POLLIN) {
                 if (__handle_inotify_events(pl_data->fd, pl_data->wd, pl_data->locks) != 0) {
-                    poll_err = DDTP_EVENT_ERROR1;
+                    pl_data->last_error = DDTP_EVENT_ERROR1;
                     pthread_exit(NULL);
                 }
 

@@ -24,12 +24,6 @@ namespace {
 struct load_request {};
 struct load_fail {};
 struct load_success {};
-struct data_send {};
-struct data_receive {};  // client internal
-struct data_retry_request {};
-struct data_verify_confirm {};
-struct data_process {};  // client internal
-struct data_purge {};    // server internal
 struct unload_request {};
 struct unload_complete {};
 struct terminate {};
@@ -41,14 +35,8 @@ struct ddtp_server {
         return make_transition_table(
           *"load_wait"_s   + event<load_fail> = X,
            "load_wait"_s   + event<load_success> = "data_ready"_s,
-           "data_ready"_s  + event<data_send> = "data_pend"_s,
            "data_ready"_s  + event<unload_request> = "unload_pend"_s,
-           "data_pend"_s   + event<data_verify_confirm> = "data_purge"_s,
-           "data_pend"_s   + event<data_retry_request> = "data_ready"_s,
-           "data_purge"_s  + event<data_purge> = "data_ready"_s,
-           "unload_pend"_s + event<unload_complete> = "load_wait"_s,
-           "load_wait"_s   + event<terminate> = X,
-           "data_ready"_s  + event<terminate> = X
+           "unload_pend"_s  + event<terminate> = X
         );
     }
 };
@@ -61,11 +49,7 @@ struct ddtp_client {
           *"load_init"_s    + event<load_request> = "load_pend"_s,
            "load_pend"_s    + event<load_fail> = X,
            "load_pend"_s    + event<load_success> = "data_wait"_s,
-           "data_wait"_s    + event<data_receive> = "data_verify"_s,
            "data_wait"_s    + event<unload_request> = "unload_pend"_s,
-           "data_verify"_s  + event<data_retry_request> = "data_wait"_s,
-           "data_verify"_s  + event<data_process> = "data_process"_s,
-           "data_process"_s + event<data_verify_confirm> = "data_wait"_s,
            "unload_pend"_s  + event<unload_complete> = X
         );
     }
@@ -79,14 +63,8 @@ struct ddtp_client {
 #define LOAD_REQUEST    0x1
 #define LOAD_FAIL       0x2
 #define LOAD_SUCCEED    0x4
-#define DATA_SEND       0x8
-#define DATA_RETRY      0x10
-#define DATA_CONFIRM    0x20
-#define UNLOAD_REQUEST  0x40
-#define UNLOAD_COMPLETE 0x80
-
-#define CRC32_DATA "ulong"
-#define FILENAME_DATA "char_array"
+#define UNLOAD_REQUEST  0x8
+#define DATA_COMPLETE   0x8
 
 #define MAX_DATASIZE 128
 

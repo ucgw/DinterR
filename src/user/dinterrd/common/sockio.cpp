@@ -3,7 +3,6 @@
 
 #include "sockio.h"
 #include "server.h"
-#include "sig.h"
 
 void dinterr_readwait(dinterr_sock_t* dsock, char* buffer, size_t bsize, std::string* stream) {
     int readstat = SOCKIO_SUCCESS;

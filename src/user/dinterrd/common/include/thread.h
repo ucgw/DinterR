@@ -36,6 +36,7 @@ typedef struct ddtp_thread_data {
 // Thread: void* input(s) will be ddtp_thread_data_t*
 void* _ddtp_inotify_entry_point(void*);
 void* _ddtp_watch_file_inotify(void*);
+void* _ddtp_async_client_payload_handler(void*);
 
 int __handle_inotify_events(int, int*, ddtp_locks_t*);
 
@@ -49,9 +50,8 @@ void _ddtp_data_client_target_verbot(crc_data_pair_t*, bool);
 int _ddtp_send_data_client_target(crc_data_pair_t*, dinterr_sock_t*);
 int _ddtp_server_send_payload(ddtp_payload_t*, dinterr_sock_t*);
 
-bool _ddtp_server_validate_incoming_type(short, sml::sm<ddtp_server>*);
+bool _ddtp_server_validate_incoming_type(short, ddtp_thread_data_t*);
 int  _ddtp_load_file_inotify(ddtp_thread_data_t*);
 void _ddtp_process_client_payload(short, ddtp_thread_data_t*);
-bool _ddtp_server_validate_incoming_type(short, sml::sm<ddtp_server>*);
 
 #endif // _THREAD_H_

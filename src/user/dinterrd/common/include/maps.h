@@ -18,12 +18,9 @@
 #define DDTP_LOAD_ERROR5 0x8
 #define DDTP_LOAD_ERROR6 0x9
 #define DDTP_ENTRY_ERROR1 0xa
-
-#define CRC32_PURGE true
-#define CRC32_KEEP false
+#define DDTP_SRVSIG_WARN1 0xb
 
 typedef std::map<short, const char*> dinterr_lookup_table_t;
-typedef std::map<uLong, const char*> dinterr_crc32_purge_table_t;
 typedef std::pair<uLong, DinterrSerdesData> crc_data_pair_t;
 
 static dinterr_lookup_table_t ddtpError {
@@ -36,14 +33,8 @@ static dinterr_lookup_table_t ddtpError {
   { DDTP_LOAD_ERROR4, "payload on load is NULL" },
   { DDTP_LOAD_ERROR5, "references are already at maximum" },
   { DDTP_LOAD_ERROR6, "pthread_create() failure" },
-  { DDTP_ENTRY_ERROR1, "sockio buffer malloc() failed" }
-};
-
-static dinterr_lookup_table_t ddtpPayloadType {
-  { LOAD_REQUEST, FILENAME_DATA },
-  { DATA_RETRY, CRC32_DATA },
-  { DATA_CONFIRM, CRC32_DATA },
-  { UNLOAD_REQUEST, FILENAME_DATA }
+  { DDTP_ENTRY_ERROR1, "sockio buffer malloc() failed" },
+  { DDTP_SRVSIG_WARN1, "server caught SIGTERM or SIGINT while processing" }
 };
 
 #endif // _MAPS_H_
