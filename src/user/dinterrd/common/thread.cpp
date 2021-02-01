@@ -318,9 +318,9 @@ void* _ddtp_async_client_payload_handler(void* data) {
         valid = _ddtp_server_validate_incoming_type(pl->type, _data);
 
         if (valid == true && pl->type == UNLOAD_REQUEST) {
-            //ddtp_lock(&_data->locks->sm_lock);
+            ddtp_lock(&_data->locks->sm_lock);
             sm->process_event(unload_request{});
-            //ddtp_unlock(&_data->locks->sm_lock);
+            ddtp_unlock(&_data->locks->sm_lock);
 
             goto free_signal;
         }
