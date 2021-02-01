@@ -42,7 +42,7 @@ int __handle_inotify_events(int, int*, ddtp_locks_t*);
 
 // migrated over from server.h
 // (single client support)
-void _ddtp_state_verbot(sml::sm<ddtp_server>*, bool);
+void _ddtp_state_verbot(sml::sm<ddtp_server>*, ddtp_locks_t*, bool);
 void _ddtp_payload_md_verbot(short, bool, bool);
 void _ddtp_char_verbot(const char*, bool);
 void _ddtp_data_client_target_verbot(crc_data_pair_t*, bool);
