@@ -133,8 +133,8 @@ int dinterrd_connect(dinterr_sock_t* dsock, sml::sm<ddtp_client>* sm, const char
                 poll(poll_sockfd, 1, 0);
             } while (poll_sockfd[0].revents & POLLRDNORM);
 
-            //ddtp_payload_init(UNLOAD_REQUEST, &pl);
-            //ddtp_client_send_payload(dsock, &pl);
+            ddtp_payload_init(UNLOAD_REQUEST, &pl);
+            ddtp_client_send_payload(dsock, &pl);
 
         }
         return(SOCKIO_SUCCESS);
