@@ -3,15 +3,18 @@
 void ddtp_locks_init(ddtp_locks_t* dlock) {
     dlock->data_ready_lock = PTHREAD_MUTEX_INITIALIZER;
     dlock->data_pend_lock = PTHREAD_MUTEX_INITIALIZER;
+    dlock->state_pend_lock = PTHREAD_MUTEX_INITIALIZER;
     dlock->ref_count_lock = PTHREAD_MUTEX_INITIALIZER;
     dlock->sm_lock = PTHREAD_MUTEX_INITIALIZER;
 
     dlock->data_ready_cond = PTHREAD_COND_INITIALIZER;
     dlock->data_pend_cond = PTHREAD_COND_INITIALIZER;
+    dlock->state_pend_cond = PTHREAD_COND_INITIALIZER;
 
     ddtp_ref_count = 0;
     ddtp_data_ready = DDTP_DATA_NOTREADY;
     ddtp_data_pend = DDTP_DATA_NOTREADY;
+    ddtp_state_pend = DDTP_DATA_NOTREADY;
 }
 
 int ddtp_lock(pthread_mutex_t* ltype) {
@@ -60,6 +63,19 @@ int ddtp_block_until_data_pend(ddtp_locks_t* dlock) {
     return(lock_retval);
 }
 
+int ddtp_block_until_state_pend(ddtp_locks_t* dlock) {
+    int lock_retval = -1;
+
+    lock_retval = ddtp_lock(&dlock->state_pend_lock);
+    if (lock_retval == 0) {
+        while (ddtp_state_pend == DDTP_DATA_NOTREADY)
+            pthread_cond_wait(&dlock->state_pend_cond, &dlock->state_pend_lock);
+        ddtp_state_pend = DDTP_DATA_NOTREADY;
+        lock_retval = ddtp_unlock(&dlock->state_pend_lock);
+    }
+    return(lock_retval);
+}
+
 int ddtp_signal_data_ready(ddtp_locks_t* dlock) {
     int lock_retval = -1;
 
@@ -80,6 +96,18 @@ int ddtp_signal_data_pend(ddtp_locks_t* dlock) {
         ddtp_data_pend = DDTP_DATA_READY;
         lock_retval = ddtp_unlock(&dlock->data_pend_lock);
         pthread_cond_signal(&dlock->data_pend_cond);
+    }
+    return(lock_retval);
+}
+
+int ddtp_signal_state_pend(ddtp_locks_t* dlock) {
+    int lock_retval = -1;
+
+    lock_retval = ddtp_lock(&dlock->state_pend_lock);
+    if (lock_retval == 0) {
+        ddtp_state_pend = DDTP_DATA_READY;
+        lock_retval = ddtp_unlock(&dlock->state_pend_lock);
+        pthread_cond_signal(&dlock->state_pend_cond);
     }
     return(lock_retval);
 }

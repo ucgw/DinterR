@@ -1,6 +1,6 @@
 #include "client.h"
 
-int dinterrd_run_client(dinterr_sock_t* dsock, uint16_t port, const char* ipaddr, const char* filename, const char* csvfile, bool verbose) {
+int dinterrd_run_client(dinterr_sock_t* dsock, int iterations, uint16_t port, const char* ipaddr, const char* filename, const char* csvfile, bool verbose) {
     using namespace sml;
     sml::sm<ddtp_client> sm;
     std::ofstream csv;
@@ -12,12 +12,12 @@ int dinterrd_run_client(dinterr_sock_t* dsock, uint16_t port, const char* ipaddr
     int retval = dinterr_sock_create(dsock, port, verbose);
 
     if (retval == SOCKIO_SUCCESS)
-        return(dinterrd_connect(dsock, &sm, filename, &csv));
+        return(dinterrd_connect(dsock, iterations, &sm, filename, &csv));
     csv.close();
     return(retval);
 }
 
-int dinterrd_connect(dinterr_sock_t* dsock, sml::sm<ddtp_client>* sm, const char* filename, std::ofstream* csv) {
+int dinterrd_connect(dinterr_sock_t* dsock, int iterations, sml::sm<ddtp_client>* sm, const char* filename, std::ofstream* csv) {
     using namespace sml;
     struct pollfd poll_sockfd[1];
     int connsock = NOSOCKFD;
@@ -27,6 +27,7 @@ int dinterrd_connect(dinterr_sock_t* dsock, sml::sm<ddtp_client>* sm, const char
     size_t bsize = MAX_PAYLOAD_SIZE;
     std::string data_stream = "";
     short error_code;
+    int iter_count = 0;
 
     if (dsock->type == DINTERR_CLIENT) {
         connect_retval = connect(dsock->cli_sockfd,
@@ -120,7 +121,10 @@ int dinterrd_connect(dinterr_sock_t* dsock, sml::sm<ddtp_client>* sm, const char
              */
             poll(poll_sockfd, 1, 0);
             do {
-                dinterr_sock_read(dsock, response, bsize);
+                if(dinterr_sock_read(dsock, response, bsize) == SOCKIO_FAIL) {
+                    goto free_and_fail;
+                }
+                
                 /* DEBUG
                 int i = 0;
                 for (i; i <= sizeof(pl); i++) {
@@ -133,9 +137,12 @@ int dinterrd_connect(dinterr_sock_t* dsock, sml::sm<ddtp_client>* sm, const char
                 poll(poll_sockfd, 1, 0);
             } while (poll_sockfd[0].revents & POLLRDNORM);
 
-            ddtp_payload_init(UNLOAD_REQUEST, &pl);
-            ddtp_client_send_payload(dsock, &pl);
+            if (iter_count >= iterations) {
+                ddtp_payload_init(UNLOAD_REQUEST, &pl);
+                ddtp_client_send_payload(dsock, &pl);
+            }
 
+            iter_count += 1;
         }
         return(SOCKIO_SUCCESS);
     }

@@ -216,6 +216,7 @@ int _ddtp_server_send_payload(ddtp_payload_t* pl, dinterr_sock_t* dsock) {
     return(retval);
 }
 
+
 // Thread(s) and dependent functions
 
 void* _ddtp_inotify_entry_point(void* data) {
@@ -269,17 +270,22 @@ void* _ddtp_inotify_entry_point(void* data) {
             unload_pend_state_teller = sm->is("unload_pend"_s);
             ddtp_unlock(&_data->locks->sm_lock);
 
+            ddtp_signal_state_pend(_data->locks);
+
             if (data_ready_state_teller == true) {
                 /* conditional lock on having full records in the
                  * global queue to send to our client, this blocks
                  * until data_ready_lock is set to DDTP_DATA_READY
                  */
                 ddtp_block_until_data_ready(_data->locks);
+                __handle_inotify_events(_data->fd, _data->wd, _data->locks);
 
                 while (auto t = gq.pop()) {
                     _ddtp_data_client_target_verbot((crc_data_pair_t*)&t, _data->sockfd->verbose);
                     _ddtp_send_data_client_target((crc_data_pair_t*)&t, _data->sockfd);
                 }
+
+                ddtp_signal_data_pend(_data->locks);
             }
             else if (load_wait_state_teller == true) {
                 dinterr_readwait(_data->sockfd, readin_buffer, bsize, &data_stream);
@@ -304,9 +310,14 @@ void* _ddtp_inotify_entry_point(void* data) {
                  * entering into terminal state effectively disconnecting
                  * client.
                  */
+                /* empty the global queue one last time */
+                ddtp_block_until_data_pend(_data->locks);
                 ddtp_lock(&_data->locks->sm_lock);
                 sm->process_event(terminate{});
                 ddtp_unlock(&_data->locks->sm_lock);
+
+                ddtp_signal_state_pend(_data->locks);
+                ddtp_block_until_data_pend(_data->locks);
             }
 
             ddtp_lock(&_data->locks->sm_lock);
@@ -369,13 +380,13 @@ free_signal:
  * Reference: https://man7.org/linux/man-pages/man7/inotify.7.html
  */
 void* _ddtp_watch_file_inotify(void* data) {
+    using namespace sml;
     ddtp_thread_data_t* _data = (ddtp_thread_data_t*) data;
-    int poll_num;
+    sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) _data->_sm;
+    int poll_num = 0;
     nfds_t nfds = 1;
     struct pollfd fds[1];
-    sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) _data->_sm;
-
-    _ddtp_state_verbot(sm, _data->locks, true);
+    bool terminal_state_teller = false;
 
     fds[0].fd = _data->fd;
     fds[0].events = POLLIN;
@@ -385,35 +396,40 @@ void* _ddtp_watch_file_inotify(void* data) {
             break;
         if (fds[0].fd < 0)
             break;
-        poll_num = poll(fds, nfds, -1);
-        if (poll_num == -1) {
-            if (errno == EINTR)
-                continue;
-            perror("_server_inotify_file_watch: poll()");
-            _data->last_error = DDTP_POLL_ERROR1;
-            break;
-        }
 
-        if (poll_num > 0) {
-            if (fds[0].revents & POLLIN) {
-                if (__handle_inotify_events(_data->fd, _data->wd, _data->locks) != 0) {
-                    _data->last_error = DDTP_EVENT_ERROR1;
-                    break;
+        ddtp_block_until_state_pend(_data->locks);
+
+        ddtp_unlock(&_data->locks->sm_lock);
+        terminal_state_teller = sm->is(X);
+        ddtp_unlock(&_data->locks->sm_lock);
+
+        if (terminal_state_teller == false) {
+            poll_num = poll(fds, nfds, -1);
+            if (poll_num == -1) {
+                if (errno == EINTR)
+                    continue;
+                perror("_server_inotify_file_watch: poll()");
+                _data->last_error = DDTP_POLL_ERROR1;
+                break;
+            }
+
+            if (poll_num > 0) {
+                if (fds[0].revents & POLLIN) {
+                    ddtp_signal_data_ready(_data->locks);
                 }
-
             }
         }
-
-        if (gq.size() > 0)
-            ddtp_signal_data_ready(_data->locks);
-        else
+        else {
             break;
+        }
     }
+
+    ddtp_signal_data_pend(_data->locks);
     pthread_exit(NULL);
 }
 
 int __handle_inotify_events(int fd, int *wd, ddtp_locks_t* dlocks) {
-    char buf[4096]
+    char buf[MAX_PAYLOAD_SIZE]
     __attribute__ ((aligned(__alignof__(struct inotify_event))));
     const struct inotify_event *event;
     ssize_t len;
@@ -421,8 +437,6 @@ int __handle_inotify_events(int fd, int *wd, ddtp_locks_t* dlocks) {
 
     for (;;) {
         eventerr = 0;
-        if (fd < 0)
-            return(DDTP_POLL_ERROR2);
 
         len = read(fd, buf, sizeof(buf));
 
@@ -430,7 +444,7 @@ int __handle_inotify_events(int fd, int *wd, ddtp_locks_t* dlocks) {
             perror("__handle_inotify_events: read()");
             eventerr = DDTP_POLL_ERROR2;
             ddtp_decrement_ref_count(dlocks);
-            return(eventerr);
+            break;
         }
 
         if (len <= 0)
@@ -488,5 +502,6 @@ int __handle_inotify_events(int fd, int *wd, ddtp_locks_t* dlocks) {
         }
     }
 
+    ddtp_signal_data_pend(dlocks);
     return(eventerr);
 }

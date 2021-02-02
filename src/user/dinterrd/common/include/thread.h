@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <poll.h>
+#include <signal.h>
 
 #include "dinterr_inotify.h"
 #include "sockio.h"
@@ -37,6 +38,8 @@ typedef struct ddtp_thread_data {
 void* _ddtp_inotify_entry_point(void*);
 void* _ddtp_watch_file_inotify(void*);
 void* _ddtp_async_client_payload_handler(void*);
+
+int spawn_ddtp_watch_file_inotify(ddtp_thread_data_t* data);
 
 int __handle_inotify_events(int, int*, ddtp_locks_t*);
 

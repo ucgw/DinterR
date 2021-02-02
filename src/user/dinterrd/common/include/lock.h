@@ -31,15 +31,19 @@ static short ddtp_data_ready;
 // retransmit data requested by client.
 static short ddtp_data_pend;
 
+static short ddtp_state_pend;
+
 // locking primitives w/ struct for locks
 // and values to lock on for update
 typedef struct ddtp_locks {
     pthread_mutex_t data_ready_lock;
     pthread_mutex_t data_pend_lock;
+    pthread_mutex_t state_pend_lock;
     pthread_mutex_t ref_count_lock;
     pthread_mutex_t sm_lock;
     pthread_cond_t data_ready_cond;
     pthread_cond_t data_pend_cond;
+    pthread_cond_t state_pend_cond;
 } ddtp_locks_t;
 
 void ddtp_locks_init(ddtp_locks_t*);
@@ -52,8 +56,10 @@ int ddtp_unlock(pthread_mutex_t*);
 // back to client
 int ddtp_block_until_data_ready(ddtp_locks_t*);
 int ddtp_block_until_data_pend(ddtp_locks_t*);
+int ddtp_block_until_state_pend(ddtp_locks_t*);
 int ddtp_signal_data_ready(ddtp_locks_t*);
 int ddtp_signal_data_pend(ddtp_locks_t*);
+int ddtp_signal_state_pend(ddtp_locks_t*);
 int ddtp_increment_ref_count(ddtp_locks_t*);
 int ddtp_decrement_ref_count(ddtp_locks_t*);
 short ddtp_get_ref_count(ddtp_locks_t*);

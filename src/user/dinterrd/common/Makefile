@@ -26,5 +26,8 @@ objs: $(OBJS_DATAPROTO) $(OBJS_NETPROTO)
 %.o: %.cpp
 	$(CC) $(CFLAGS) -o $@ -c $<
 
+redo:
+	make clean && make
+
 clean:
 	rm -f $(OBJS_CLIENT) $(OBJS_DATAPROTO) $(OBJS_NETPROTO) $(TARGET1) $(TARGET2) $(TARGET3)
