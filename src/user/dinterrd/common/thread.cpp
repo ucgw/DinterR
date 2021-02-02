@@ -307,10 +307,9 @@ void* _ddtp_inotify_entry_point(void* data) {
                 /* client has sent an UNLOAD_REQUEST signaling to
                  * server that they wish to finish session, so process
                  * any remaining records and send to client before
-                 * entering into terminal state effectively disconnecting
-                 * client.
+                 * entering into terminal state effectively
+                 * disconnecting client.
                  */
-                /* empty the global queue one last time */
                 ddtp_block_until_data_pend(_data->locks);
                 ddtp_lock(&_data->locks->sm_lock);
                 sm->process_event(terminate{});
