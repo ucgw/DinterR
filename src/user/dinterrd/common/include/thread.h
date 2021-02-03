@@ -22,6 +22,13 @@
  */
 static ThreadsafeQueue<crc_data_pair_t> gq;
 
+/*
+ * The global dedup map (gdm) where crc keyed
+ * elements of DinterrSerdesData will be used
+ * to keep track of payloads already processed.
+ */
+static dinterr_data_dedup_t gdm;
+
 // this will be the primary struct
 // for input to thread
 typedef struct ddtp_thread_data {
@@ -49,8 +56,10 @@ void _ddtp_state_verbot(sml::sm<ddtp_server>*, ddtp_locks_t*, bool);
 void _ddtp_payload_md_verbot(short, bool, bool);
 void _ddtp_char_verbot(const char*, bool);
 void _ddtp_data_client_target_verbot(crc_data_pair_t*, bool);
+bool _ddtp_data_dedup_update(uLong, ddtp_locks_t*);
+bool __ddtp_is_data_seen(uLong, ddtp_locks_t*);
 
-int _ddtp_send_data_client_target(crc_data_pair_t*, dinterr_sock_t*);
+int _ddtp_send_data_client_target(crc_data_pair_t*, dinterr_sock_t*, ddtp_locks_t*);
 int _ddtp_server_send_payload(ddtp_payload_t*, dinterr_sock_t*);
 
 bool _ddtp_server_validate_incoming_type(short, ddtp_thread_data_t*);

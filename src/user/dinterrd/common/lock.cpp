@@ -6,6 +6,7 @@ void ddtp_locks_init(ddtp_locks_t* dlock) {
     dlock->state_pend_lock = PTHREAD_MUTEX_INITIALIZER;
     dlock->ref_count_lock = PTHREAD_MUTEX_INITIALIZER;
     dlock->sm_lock = PTHREAD_MUTEX_INITIALIZER;
+    dlock->dedup_lock = PTHREAD_MUTEX_INITIALIZER;
 
     dlock->data_ready_cond = PTHREAD_COND_INITIALIZER;
     dlock->data_pend_cond = PTHREAD_COND_INITIALIZER;
