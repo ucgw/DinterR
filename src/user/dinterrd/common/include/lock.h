@@ -41,6 +41,8 @@ typedef struct ddtp_locks {
     pthread_mutex_t state_pend_lock;
     pthread_mutex_t ref_count_lock;
     pthread_mutex_t sm_lock;
+    pthread_mutex_t dedup_lock;
+
     pthread_cond_t data_ready_cond;
     pthread_cond_t data_pend_cond;
     pthread_cond_t state_pend_cond;

@@ -21,7 +21,7 @@
 #define DDTP_SRVSIG_WARN1 0xb
 
 typedef std::map<short, const char*> dinterr_lookup_table_t;
-typedef std::map<uLong, DinterrSerdesData> dinterr_payload_store_t;
+typedef std::map<uLong, bool> dinterr_data_dedup_t;
 typedef std::pair<uLong, DinterrSerdesData> crc_data_pair_t;
 
 static dinterr_lookup_table_t ddtpError {

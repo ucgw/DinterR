@@ -197,12 +197,45 @@ void _ddtp_data_client_target_verbot(crc_data_pair_t* pl_data, bool verbose) {
     }
 }
 
-int _ddtp_send_data_client_target(crc_data_pair_t* _data, dinterr_sock_t* dsock) {
+bool __ddtp_is_data_seen(uLong crc, ddtp_locks_t* dlocks) {
+    dinterr_data_dedup_t::iterator it;
+    bool seen = false;
+
+    ddtp_lock(&dlocks->dedup_lock);
+    it = gdm.find(crc);
+    if (it != gdm.end())
+        seen = true;
+    ddtp_unlock(&dlocks->dedup_lock);
+
+    return(seen);
+}
+
+bool _ddtp_data_dedup_update(uLong crc, ddtp_locks_t* dlocks) {
+    dinterr_data_dedup_t::iterator it;
+    bool seen = false;
+    bool updated = false;
+
+    seen = __ddtp_is_data_seen(crc, dlocks);
+
+    if (seen == false) {
+        ddtp_lock(&dlocks->dedup_lock);
+        gdm[crc] = updated;
+        ddtp_unlock(&dlocks->dedup_lock);
+
+        updated = true;
+    }
+
+    return(updated);
+}
+
+int _ddtp_send_data_client_target(crc_data_pair_t* _data, dinterr_sock_t* dsock, ddtp_locks_t* dlocks) {
     uLong crc = std::get<0>(*_data);
     DinterrSerdesData serdes = std::get<1>(*_data);
     const char* data = (const char*) serdes.get_data();
 
-    return(dinterr_sock_write(dsock, data));
+    if (__ddtp_is_data_seen(crc, dlocks) == true)
+        return(dinterr_sock_write(dsock, data));
+    return SOCKIO_DONE;
 }
 
 /*
@@ -267,8 +300,9 @@ void* _ddtp_inotify_entry_point(void* data) {
 
                 while (auto t = gq.pop()) {
                     _ddtp_data_client_target_verbot((crc_data_pair_t*)&t, _data->sockfd->verbose);
-                    _ddtp_send_data_client_target((crc_data_pair_t*)&t, _data->sockfd);
+                    _ddtp_send_data_client_target((crc_data_pair_t*)&t, _data->sockfd, _data->locks);
                 }
+
 
                 ddtp_signal_data_pend(_data->locks);
             }
@@ -323,6 +357,25 @@ void* _ddtp_inotify_entry_point(void* data) {
 
                 ddtp_signal_state_pend(_data->locks);
                 ddtp_block_until_data_pend(_data->locks);
+
+                /*
+                 * WARN: Dangerous to hold back from
+                 * clearing the gdm in that the client drives
+                 * how long to keep processing dinterr data and
+                 * this could grow memory adversely.
+                 *
+                 * Improvement: add to protocol spec to negotiate
+                 * acceptable iteration levels.
+                 *
+                 * clear our dedup map every iteration
+                 * in order to keep memory usage in check
+                 * however, there will still be some duplicate
+                 * data being sent in payloads to client under
+                 * certain cases.
+                 */
+                ddtp_lock(&_data->locks->dedup_lock);
+                gdm.clear();
+                ddtp_unlock(&_data->locks->dedup_lock);
             }
 
             ddtp_lock(&_data->locks->sm_lock);
@@ -496,14 +549,16 @@ int __handle_inotify_events(int fd, int *wd, ddtp_locks_t* dlocks) {
 
             uLong crc32_key = drecord.get_crc();
 
-            DinterrSerdesData* serdes = drecord.get_serdes();
-            DinterrSerdesData sd_copy = *serdes;
+            if (_ddtp_data_dedup_update(crc32_key, dlocks) == true) {
+                DinterrSerdesData* serdes = drecord.get_serdes();
+                DinterrSerdesData sd_copy = *serdes;
 
-            crc_data_pair_t d_pair (crc32_key, sd_copy);
+                crc_data_pair_t d_pair (crc32_key, sd_copy);
 
-            gq.push(d_pair);
+                gq.push(d_pair);
 
-            delete serdes;
+                delete serdes;
+            }
         }
     }
 
