@@ -237,21 +237,6 @@ void* _ddtp_inotify_entry_point(void* data) {
         bool verbose = _data->sockfd->verbose;
         sml::sm<ddtp_server>* sm = (sml::sm<ddtp_server>*) _data->_sm;
 
-        /*   spawn another thread for handling incoming
-         *   UNLOAD_REQUEST from client. this thread
-         *   will have the capability to signal data_ready
-         *   but before doing so, will transition to
-         *   unload_pend state, which will prohibit entering
-         *   this code path next iteration of the while()
-         */
-        if (pthread_create(&asyncplid, NULL, _ddtp_async_client_payload_handler, (void*) _data) == 0) {
-            pthread_detach(asyncplid);
-        }
-        else {
-            _data->last_error = DDTP_LOAD_ERROR6;
-            pthread_exit(NULL);
-        }
-
         /* while we haven't hit a terminal state
          * process socket io (sml::X) represents
          * the terminal state in the sml::sm object
@@ -298,6 +283,27 @@ void* _ddtp_inotify_entry_point(void* data) {
                 if (valid == true) {
                     _data->payload = pl;
                     _ddtp_process_client_payload(pl->type, _data);
+
+                    ddtp_lock(&_data->locks->sm_lock);
+                    bool in_data_ready = sm->is("data_ready"_s);
+                    ddtp_unlock(&_data->locks->sm_lock);
+
+                    if (in_data_ready == true) {
+                        /*   spawn another thread for handling incoming
+                         *   UNLOAD_REQUEST from client. this thread
+                         *   will have the capability to signal data_ready
+                         *   but before doing so, will transition to
+                         *   unload_pend state, which will prohibit entering
+                         *   this code path next iteration of the while()
+                         */
+                        if (pthread_create(&asyncplid, NULL, _ddtp_async_client_payload_handler, (void*) _data) == 0) {
+                            pthread_detach(asyncplid);
+                        }
+                        else {
+                            _data->last_error = DDTP_LOAD_ERROR6;
+                            pthread_exit(NULL);
+                        }
+                    }
                 }
 
                 ddtp_serdes_destroy(sd);
