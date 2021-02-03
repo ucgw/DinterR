@@ -122,7 +122,8 @@ int dinterrd_connect(dinterr_sock_t* dsock, int iterations, sml::sm<ddtp_client>
             poll(poll_sockfd, 1, 0);
             do {
                 if(dinterr_sock_read(dsock, response, bsize) == SOCKIO_FAIL) {
-                    goto free_and_fail;
+                    iter_count = iterations;
+                    break;
                 }
                 
                 /* DEBUG
@@ -132,9 +133,15 @@ int dinterrd_connect(dinterr_sock_t* dsock, int iterations, sml::sm<ddtp_client>
                 }
                 printf("\n----------\n");
                 */
-                ddtp_client_process_response(response, csv);
-                memset(response, '\0', MAX_PAYLOAD_SIZE);
-                poll(poll_sockfd, 1, 0);
+
+                if (ddtp_client_process_response(response, csv) == 0) {
+                    memset(response, '\0', MAX_PAYLOAD_SIZE);
+                    poll(poll_sockfd, 1, 0);
+                }
+                else {
+                    iter_count = iterations;
+                    break;
+                }
             } while (poll_sockfd[0].revents & POLLRDNORM);
 
             if (iter_count >= iterations) {
@@ -164,9 +171,14 @@ int ddtp_client_send_payload(dinterr_sock_t* dsock, ddtp_payload_t* pl) {
     return(retval);
 }
 
-void ddtp_client_process_response(const char* response, std::ofstream* csv) {
+int ddtp_client_process_response(const char* response, std::ofstream* csv) {
+    int retcode = 0;
     DinterrSerdesData* cli_dat = new DinterrSerdesData(response);
     dinterr_data_t* d_data = (dinterr_data_t*) cli_dat->get_data();
-    dump_dinterr_data_toCsv(csv, d_data);
+    if (d_data->_crc != 0)
+        dump_dinterr_data_toCsv(csv, d_data);
+    else
+        retcode = 1;
     delete cli_dat;
+    return(retcode);
 }
