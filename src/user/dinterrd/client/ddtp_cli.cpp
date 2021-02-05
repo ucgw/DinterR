@@ -16,6 +16,7 @@ int main(int argc, char** argv) {
     std::string ddtp_csvfile;
     uint16_t ddtp_port;
     bool verbose;
+    bool csvheader;
     dinterr_sock_t dsock;
     int iterations = 0;
     int sockretval = SOCKIO_FAIL;
@@ -35,13 +36,16 @@ int main(int argc, char** argv) {
        cxxopts::value<uint16_t>()->default_value("8992"))
       ("v,verbose", "verbose flag",
        cxxopts::value<bool>()->default_value("false"))
+      ("header", "write csv header line in csv file",
+       cxxopts::value<bool>()->default_value("false"))
       ("h,help", "Print usage")
     ;
 
     try {
         auto result = options.parse(argc, argv);
 
-        verbose = result["verbose"].as<bool>();
+        verbose      = result["verbose"].as<bool>();
+        csvheader    = result["header"].as<bool>();
         iterations   = result["iterations"].as<int>();
         ddtp_server  = result["server"].as<std::string>();
         ddtp_rfile   = result["file"].as<std::string>();
@@ -57,5 +61,5 @@ int main(int argc, char** argv) {
     return(dinterrd_run_client(&dsock, iterations,
               ddtp_port, ddtp_server.c_str(),
                   ddtp_rfile.c_str(), ddtp_csvfile.c_str(),
-                      verbose));
+                      csvheader, verbose));
 }
