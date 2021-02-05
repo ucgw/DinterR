@@ -27,3 +27,18 @@ void dump_dinterr_data_toCsv(std::ofstream* outfile, dinterr_data_t* data) {
              std::endl;
     }
 }
+
+void dump_dinterr_csvHeader(std::ofstream* outfile) {
+    if (outfile->is_open()) {
+        *outfile << "ddtp_crc32" << \
+             "," << "ddtp_attrs" << \
+             "," << "pos" << \
+             "," << "count" << \
+             "," << "pid" << \
+             "," << "ra_page_count" << \
+             "," << "ra_cache_misses" << \
+             "," << "ra_last_cache_pos" << \
+             "," << "kernel_time" << \
+            std::endl;
+    }
+}

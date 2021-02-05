@@ -1,12 +1,15 @@
 #include "client.h"
 
-int dinterrd_run_client(dinterr_sock_t* dsock, int iterations, uint16_t port, const char* ipaddr, const char* filename, const char* csvfile, bool verbose) {
+int dinterrd_run_client(dinterr_sock_t* dsock, int iterations, uint16_t port, const char* ipaddr, const char* filename, const char* csvfile, bool csvheader, bool verbose) {
     using namespace sml;
     sml::sm<ddtp_client> sm;
     std::ofstream csv;
 
     if (open_for_append(csvfile, &csv) == false)
         return(SOCKIO_FAIL);
+
+    if (csvheader == true)
+        dump_dinterr_csvHeader(&csv);
 
     dinterr_sock_init(dsock, DINTERR_CLIENT, ipaddr);
     int retval = dinterr_sock_create(dsock, port, verbose);

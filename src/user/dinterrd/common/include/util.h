@@ -8,5 +8,6 @@
 
 bool open_for_append(const char*, std::ofstream*);
 void dump_dinterr_data_toCsv(std::ofstream*, dinterr_data_t*);
+void dump_dinterr_csvHeader(std::ofstream*);
 
 #endif // _UTIL_H_
