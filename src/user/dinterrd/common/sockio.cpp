@@ -49,7 +49,10 @@ int dinterr_sock_create(dinterr_sock_t* dsock, uint16_t port, bool verbose) {
 
     if (dsock->type == DINTERR_SERVER) {
         dsock->srv_sockfd = sockfd;
-        dsock->address.sin_addr.s_addr = htonl(INADDR_ANY);
+        if (dsock->ipaddr == NULL)
+            dsock->address.sin_addr.s_addr = htonl(INADDR_ANY);
+        else
+            dsock->address.sin_addr.s_addr = inet_addr(dsock->ipaddr);
 
         retval = bind(dsock->srv_sockfd,
                       (struct sockaddr*)&dsock->address,
