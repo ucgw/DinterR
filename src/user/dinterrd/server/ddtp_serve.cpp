@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
     }
 
     if (ddtp_ipaddr.compare(DEFAULT_ALL_IPS) == 0)
-        dinterrd_run_server(&dsock, ddtp_port);
+        dinterrd_run_server(&dsock, ddtp_port, verbose);
     else
-        dinterrd_run_server(&dsock, ddtp_port, ddtp_ipaddr.c_str());
+        dinterrd_run_server(&dsock, ddtp_port, verbose, ddtp_ipaddr.c_str());
 }

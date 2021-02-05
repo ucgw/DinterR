@@ -30,13 +30,13 @@ int _dinterrd_processor(dinterr_sock_t* dsock, sml::sm<ddtp_server>* sm, char* c
     return (int)tdat.last_error;
 }
 
-void dinterrd_run_server(dinterr_sock_t* dsock, uint16_t port, const char* ipaddr) {
+void dinterrd_run_server(dinterr_sock_t* dsock, uint16_t port, bool verbose, const char* ipaddr) {
     if (ipaddr == NULL)
         dinterr_sock_init(dsock, DINTERR_SERVER);
     else
         dinterr_sock_init(dsock, DINTERR_SERVER, ipaddr);
 
-    if (dinterr_sock_create(dsock, port, true) == SOCKIO_SUCCESS)
+    if (dinterr_sock_create(dsock, port, verbose) == SOCKIO_SUCCESS)
         dinterrd_accept(dsock);
 }
 
