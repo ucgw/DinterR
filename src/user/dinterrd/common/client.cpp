@@ -1,5 +1,17 @@
 #include "client.h"
 
+void ddtp_data_server_source_verbot(char* response, bool verbose) {
+    if (verbose == true && response != NULL) {
+        size_t psize = sizeof(ddtp_payload_t);
+        size_t i = 0;
+
+        for (i; i <= psize; i++) {
+            printf("0x%02X ", response[i]);
+        }
+        printf("\n----------\n");
+    }
+}
+
 int dinterrd_run_client(dinterr_sock_t* dsock, int iterations, uint16_t port, const char* ipaddr, const char* filename, const char* csvfile, bool csvheader, bool verbose) {
     using namespace sml;
     sml::sm<ddtp_client> sm;
@@ -128,14 +140,8 @@ int dinterrd_connect(dinterr_sock_t* dsock, int iterations, sml::sm<ddtp_client>
                     iter_count = iterations;
                     break;
                 }
-                
-                /* DEBUG
-                int i = 0;
-                for (i; i <= sizeof(pl); i++) {
-                    printf("0x%02X ", response[i]);
-                }
-                printf("\n----------\n");
-                */
+
+                ddtp_data_server_source_verbot(response, dsock->verbose);
 
                 if (ddtp_client_process_response(response, csv) == 0) {
                     memset(response, '\0', MAX_PAYLOAD_SIZE);
