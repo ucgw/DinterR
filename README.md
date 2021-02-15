@@ -14,6 +14,32 @@ Below is a diagram of what extra data is captured at various function call point
 
 ![DinterR Data Sources](/doc/images/kernel_fsnotify_inotify_data_flow.png)
 
+## Kernel Build Instructions
+In order for the _ddtp-serve_ and _ddtp-cli_ to work, the supported kernel needs to be patched using patches provided in the repo. In this section I will provide instructions for using the provided automation for applying those patches and building the kernel. 
+
+**NOTE:** these instructions have only been tested on CentOS 7.
+
+1. download source code for the linux kernel version 4.19.143
+2. configure `DinterR/utils/kern/dinterbuild.env` for:
+  - KERNEL_DIR (full path of your kernel source.)
+  - PATCH_DIR (full path to the patches directory within the repo)
+
+```
+KERNEL_DIR="<path to source code>/linux-$KERNEL_VER"
+PATCH_DIR="<path to DinterR checkout>/src/kern/patches/$KERNEL_VER"
+```
+3. manually change the `$KERNEL_DIR/.config` to match `$LOCAL_VERSION_INIT_SUBSTRING`
+4. apply patches via script
+```
+% cd DinterR/utils/kern
+% ./apply_latest_patches.sh
+```
+5. inspect output to ensure that patches were applied successfully.
+6. build patched kernel source
+```
+% ./newbuild.sh
+```
+
 ## Userland Build Instructions
 The server and client are written in C++. Because of dependencies on some [third party](#third-party-code-used--acknowledgements) software, a version of gcc supporting C++20 standard (**-std=c++2a**). Also, **zlib** is a dependency for the build.
 
