@@ -55,6 +55,40 @@ The server and client are written in C++. Because of dependencies on some [third
 % make
 ```
 
+## Usage / Examples
+_ddtp-serve_ help output:
+
+```
+% ./ddtp-serve -h
+A DinterR data tranport protocol server
+Usage:
+  ddtp-serve [OPTION...]
+
+  -i, --ipaddr arg  ip address to bind socket to (default: ALL)
+  -p, --port arg    remote ddtp server port to connect to (default: 8992)
+  -v, --verbose     verbose flag
+  -h, --help        Print usage
+```
+
+_ddtp-cli_ help output:
+
+```
+$ ./ddtp-cli 
+Error parsing: Option ‘’ has no value
+A DinterR data tranport protocol client
+Usage:
+  ddtp-cli [OPTION...]
+
+  -f, --file arg        remote file to watch via inotify for extra data
+  -c, --csv arg         csv file to write/append inotify extra data
+  -s, --server arg      remote ddtp server hostname/ip to connect to
+  -i, --iterations arg  number of poll interations on socket (default: 10)
+  -p, --port arg        remote ddtp server port to connect to (default: 8992)
+  -v, --verbose         verbose flag
+      --header          write csv header line in csv file
+  -h, --help            Print usage
+```
+
 ### Third Party Code Used / Acknowledgements:
 - [cxxopts](https://github.com/jarro2783/cxxopts)
 - [boost-ext/SML](https://github.com/boost-ext/sml)
