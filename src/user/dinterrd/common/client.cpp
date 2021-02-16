@@ -27,7 +27,7 @@ int dinterrd_run_client(dinterr_sock_t* dsock, int iterations, uint16_t port, co
     int retval = dinterr_sock_create(dsock, port, verbose);
 
     if (retval == SOCKIO_SUCCESS)
-        return(dinterrd_connect(dsock, iterations, &sm, filename, &csv));
+        retval = dinterrd_connect(dsock, iterations, &sm, filename, &csv);
     csv.close();
     return(retval);
 }
