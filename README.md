@@ -73,7 +73,7 @@ Usage:
 _ddtp-cli_ help output:
 
 ```
-$ ./ddtp-cli 
+% ./ddtp-cli 
 Error parsing: Option ‘’ has no value
 A DinterR data tranport protocol client
 Usage:
