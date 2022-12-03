@@ -43,6 +43,16 @@ PATCH_DIR="<path to DinterR checkout>/src/kern/patches/$KERNEL_VER"
 ## Userland Build Instructions
 The server and client are written in C++. Because of dependencies on some [third party](#third-party-code-used--acknowledgements) software, a version of gcc supporting C++20 standard (**-std=c++2a**). Also, **zlib** is a dependency for the build.
 
+## Dinterr Data Transport Protocol (DDTP)
+The server and client implement a rudimentary protocol to communicate inotify extra data from source host (server) to remote host (client). Below are diagrams outlining the protocol.
+
+### DDTP (Server)
+![DinterR Server](/doc/images/server_fsm.png)
+
+### DDTP (Client)
+![DinterR Client](/doc/images/client_fsm.png)
+
+
 ### Building ddtp-serve
 ```
 % cd DinterR/src/user/dinterrd/server
